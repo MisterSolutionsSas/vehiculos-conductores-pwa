@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+// /pages/vehiculos/registrar.js
+
+import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../../supabaseClient';  // Asegúrate de tener la configuración correcta de supabaseClient
 
 export default function RegistrarVehiculo() {
   const [vehiculo, setVehiculo] = useState({
@@ -13,35 +14,7 @@ export default function RegistrarVehiculo() {
     tecnoMecanicaVigencia: ''
   });
 
-  const [vehiculos, setVehiculos] = useState([]);
   const router = useRouter();
-
-  useEffect(() => {
-    // Habilitar suscripción en tiempo real para cambios en la tabla de vehiculos
-    const subscription = supabase
-      .from('vehiculos')  // Nombre de la tabla en Supabase
-      .on('INSERT', payload => {
-        // Actualizar la lista de vehículos en tiempo real
-        setVehiculos(prev => [...prev, payload.new]);
-      })
-      .subscribe();
-
-    // Obtener los vehículos actuales al cargar la página
-    const fetchVehiculos = async () => {
-      const { data, error } = await supabase.from('vehiculos').select('*');
-      if (error) {
-        console.error('Error al cargar vehículos:', error);
-      } else {
-        setVehiculos(data);
-      }
-    };
-
-    fetchVehiculos();
-
-    return () => {
-      supabase.removeSubscription(subscription); // Limpiar la suscripción cuando el componente se desmonte
-    };
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,7 +24,7 @@ export default function RegistrarVehiculo() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     if (
@@ -67,35 +40,18 @@ export default function RegistrarVehiculo() {
       return;
     }
 
-    // Comprobar si ya existe un vehículo con la misma placa
+    const vehiculos = JSON.parse(localStorage.getItem('vehiculos')) || [];
+
     const placaExistente = vehiculos.find(v => v.placa === vehiculo.placa);
     if (placaExistente) {
       alert('Ya existe un vehículo registrado con esta placa.');
       return;
     }
 
-    // Insertar el vehículo en la base de datos
-    const { data, error } = await supabase
-      .from('vehiculos')
-      .insert([
-        {
-          conductor: vehiculo.conductor,
-          placa: vehiculo.placa,
-          marca: vehiculo.marca,
-          modelo: vehiculo.modelo,
-          año: vehiculo.año,
-          soatVigencia: vehiculo.soatVigencia,
-          tecnoMecanicaVigencia: vehiculo.tecnoMecanicaVigencia,
-        }
-      ]);
+    vehiculos.push(vehiculo);
+    localStorage.setItem('vehiculos', JSON.stringify(vehiculos));
 
-    if (error) {
-      console.error('Error al registrar el vehículo:', error);
-      alert('Hubo un error al registrar el vehículo.');
-    } else {
-      alert('Vehículo registrado con éxito');
-      router.push('/vehiculos');
-    }
+    router.push('/vehiculos');
   };
 
   return (
@@ -103,65 +59,15 @@ export default function RegistrarVehiculo() {
       <div style={styles.formContainer}>
         <h2>Registrar Vehículo</h2>
         <form onSubmit={handleSubmit} style={styles.form}>
-          <input
-            name="conductor"
-            placeholder="Nombre del Conductor"
-            value={vehiculo.conductor}
-            onChange={handleChange}
-            style={styles.input}
-            required
-          />
-          <input
-            name="placa"
-            placeholder="Placa"
-            value={vehiculo.placa}
-            onChange={handleChange}
-            style={styles.input}
-            required
-          />
-          <input
-            name="marca"
-            placeholder="Marca"
-            value={vehiculo.marca}
-            onChange={handleChange}
-            style={styles.input}
-            required
-          />
-          <input
-            name="modelo"
-            placeholder="Modelo"
-            value={vehiculo.modelo}
-            onChange={handleChange}
-            style={styles.input}
-            required
-          />
-          <input
-            type="number"
-            name="año"
-            placeholder="Año"
-            value={vehiculo.año}
-            onChange={handleChange}
-            style={styles.input}
-            required
-          />
+          <input name="conductor" placeholder="Nombre del Conductor" value={vehiculo.conductor} onChange={handleChange} style={styles.input} required />
+          <input name="placa" placeholder="Placa" value={vehiculo.placa} onChange={handleChange} style={styles.input} required />
+          <input name="marca" placeholder="Marca" value={vehiculo.marca} onChange={handleChange} style={styles.input} required />
+          <input name="modelo" placeholder="Modelo" value={vehiculo.modelo} onChange={handleChange} style={styles.input} required />
+          <input type="number" name="año" placeholder="Año" value={vehiculo.año} onChange={handleChange} style={styles.input} required />
           <label style={styles.label}>Vigencia del SOAT</label>
-          <input
-            type="date"
-            name="soatVigencia"
-            value={vehiculo.soatVigencia}
-            onChange={handleChange}
-            style={styles.input}
-            required
-          />
+          <input type="date" name="soatVigencia" value={vehiculo.soatVigencia} onChange={handleChange} style={styles.input} required />
           <label style={styles.label}>Vigencia de la Técnico-mecánica</label>
-          <input
-            type="date"
-            name="tecnoMecanicaVigencia"
-            value={vehiculo.tecnoMecanicaVigencia}
-            onChange={handleChange}
-            style={styles.input}
-            required
-          />
+          <input type="date" name="tecnoMecanicaVigencia" value={vehiculo.tecnoMecanicaVigencia} onChange={handleChange} style={styles.input} required />
           <div style={styles.buttonContainer}>
             <button type="submit" style={styles.submitButton}>Registrar</button>
             <button type="button" onClick={() => router.push('/vehiculos')} style={styles.cancelButton}>Volver</button>
