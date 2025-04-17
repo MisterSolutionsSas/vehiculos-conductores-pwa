@@ -1,0 +1,20 @@
+# Dependencias de node.js
+node_modules/
+
+# Archivos de construcción generados por Next.js
+.next/
+out/
+
+# Archivos de configuración del editor
+.vscode/
+.idea/
+
+# Archivos de log
+*.log
+
+# Archivos de entorno de desarrollo
+.env
+.env.local
+.env.development
+.env.test
+.env.production

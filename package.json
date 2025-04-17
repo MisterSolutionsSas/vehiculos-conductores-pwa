@@ -1,0 +1,23 @@
+{
+  "name": "vehiculos-conductores-pwa",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión PWA",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "file-saver": "^2.0.5",
+    "next": "^14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-toastify": "^11.0.5",
+    "xlsx": "^0.18.5"
+  }
+}
