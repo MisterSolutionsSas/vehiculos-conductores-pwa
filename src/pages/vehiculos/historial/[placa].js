@@ -283,10 +283,13 @@ const HistorialVehiculo = () => {
   return (
     <div style={styles.container}>
       <Navbar />
-      <h1 style={styles.title}>Historial de Mantenimientos - {vehiculo.placa}</h1>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Historial de Mantenimientos</h1>
+        <p style={styles.subtitle}>Placa: {vehiculo.placa}</p>
+      </div>
 
       <div id="seccion-edicion" style={styles.section}>
-        <h3 style={styles.sectionTitle}>{modoEdicion ? 'Editar Mantenimiento' : 'Agregar Nuevo Mantenimiento'}</h3>
+        <h3 style={styles.sectionTitle}>{modoEdicion ? '✏️ Editar Mantenimiento' : '➕ Agregar Nuevo Mantenimiento'}</h3>
         <div style={styles.form}>
           <input 
             type="text" 
@@ -311,25 +314,28 @@ const HistorialVehiculo = () => {
             onChange={handleChange} 
             style={styles.input} 
           />
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleFileChange} 
-            style={styles.inputFile} 
-          />
+          <label style={styles.fileInputLabel}>
+            <span>{nuevoMantenimiento.factura ? '✔ Factura cargada' : 'Seleccionar Factura'}</span>
+            <input 
+              type="file" 
+              accept="image/*, .pdf" 
+              onChange={handleFileChange} 
+              style={styles.fileInput} 
+            />
+          </label>
           <div style={styles.buttonContainer}>
             <button 
               onClick={modoEdicion ? guardarCambios : agregarMantenimiento} 
               style={modoEdicion ? styles.buttonSave : styles.buttonAdd}
             >
-              {modoEdicion ? 'Guardar Cambios' : 'Agregar Mantenimiento'}
+              {modoEdicion ? '💾 Guardar Cambios' : '➕ Agregar'}
             </button>
             {modoEdicion && (
               <button 
                 onClick={cancelarEdicion} 
                 style={styles.buttonCancel}
               >
-                Cancelar Edición
+                ❌ Cancelar
               </button>
             )}
           </div>
@@ -337,11 +343,11 @@ const HistorialVehiculo = () => {
       </div>
 
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Historial de Mantenimientos</h3>
+        <h3 style={styles.sectionTitle}>📜 Historial de Mantenimientos</h3>
         <div style={styles.filterContainer}>
           <input 
             type="text" 
-            placeholder="Buscar por descripción" 
+            placeholder="🔍 Buscar por descripción" 
             value={busqueda} 
             onChange={(e) => setBusqueda(e.target.value)} 
             style={styles.inputFilter} 
@@ -357,20 +363,25 @@ const HistorialVehiculo = () => {
             onClick={exportarHistorialAExcel} 
             style={styles.buttonExport}
           >
-            Exportar a Excel
+            📊 Exportar a Excel
           </button>
         </div>
 
         {filtrarMantenimientos().length === 0 ? (
-          <p style={styles.noData}>No se encontraron mantenimientos.</p>
+          <div style={styles.noDataContainer}>
+            <p style={styles.noData}>No se encontraron mantenimientos</p>
+          </div>
         ) : (
-          <ul style={styles.list}>
+          <div style={styles.list}>
             {filtrarMantenimientos().map((mantenimiento) => (
-              <li key={mantenimiento.id} style={styles.listItem}>
+              <div key={mantenimiento.id} style={styles.listItem}>
                 <div style={styles.itemInfo}>
                   <strong style={styles.itemTitle}>{mantenimiento.descripcion}</strong>
                   <p style={styles.itemDetails}>
-                    {Number(mantenimiento.valor).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} - {formatearFecha(mantenimiento.fecha)}
+                    <span style={styles.itemAmount}>
+                      {Number(mantenimiento.valor).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                    </span>
+                    <span style={styles.itemDate}>{formatearFecha(mantenimiento.fecha)}</span>
                   </p>
                 </div>
                 <div style={styles.actions}>
@@ -379,25 +390,25 @@ const HistorialVehiculo = () => {
                       onClick={() => verFactura(mantenimiento.factura)} 
                       style={styles.viewButton}
                     >
-                      Ver Factura
+                      📄 Factura
                     </button>
                   )}
                   <button 
                     onClick={() => editarMantenimiento(mantenimiento)} 
                     style={styles.editButton}
                   >
-                    Editar
+                    ✏️ Editar
                   </button>
                   <button 
                     onClick={() => eliminarMantenimiento(mantenimiento.id)} 
                     style={styles.deleteButton}
                   >
-                    Eliminar
+                    🗑️ Eliminar
                   </button>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>
@@ -406,208 +417,252 @@ const HistorialVehiculo = () => {
 
 const styles = {
   container: {
-    padding: '3rem 2rem',
-    backgroundColor: '#f8fafc',
+    padding: '1rem',
+    backgroundColor: '#f5f7fa',
     minHeight: '100vh',
-    fontFamily: "'Inter', sans-serif",
-    maxWidth: '1200px',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    maxWidth: '100%',
     margin: '0 auto',
   },
   loading: {
     textAlign: 'center',
-    fontSize: '1.2rem',
+    fontSize: '1rem',
     color: '#4b5563',
-    marginTop: '2rem',
+    padding: '2rem',
+  },
+  header: {
+    marginBottom: '1.5rem',
+    padding: '0 0.5rem',
   },
   title: {
-    textAlign: 'center',
-    marginBottom: '3rem',
-    color: '#1f2937',
-    fontSize: '2.5rem',
-    fontWeight: '700',
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    color: '#1a202c',
+    marginBottom: '0.25rem',
+  },
+  subtitle: {
+    fontSize: '1rem',
+    color: '#4a5568',
+    margin: 0,
   },
   section: {
     backgroundColor: '#ffffff',
-    padding: '2rem',
-    borderRadius: '12px',
-    marginBottom: '2.5rem',
-    boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+    padding: '1.25rem',
+    borderRadius: '0.75rem',
+    marginBottom: '1.5rem',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
   },
   sectionTitle: {
-    fontSize: '1.5rem',
-    color: '#1f2937',
-    marginBottom: '1.5rem',
+    fontSize: '1.25rem',
+    color: '#2d3748',
+    marginBottom: '1.25rem',
     fontWeight: '600',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
   },
   form: {
-    display: 'grid',
-    gap: '1rem',
-    maxWidth: '600px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
   },
   input: {
     width: '100%',
-    padding: '0.9rem 1rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    color: '#374151',
-    backgroundColor: '#f9fafb',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
+    padding: '0.75rem',
+    border: '1px solid #e2e8f0',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    color: '#2d3748',
+    backgroundColor: '#f8fafc',
     outline: 'none',
   },
-  inputFile: {
-    width: '100%',
-    padding: '0.9rem 1rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    color: '#374151',
-    backgroundColor: '#f9fafb',
+  fileInputLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0.75rem',
+    border: '1px dashed #cbd5e0',
+    borderRadius: '0.5rem',
+    backgroundColor: '#f8fafc',
     cursor: 'pointer',
+    fontSize: '0.95rem',
+    color: '#4a5568',
+    textAlign: 'center',
+  },
+  fileInput: {
+    display: 'none',
   },
   buttonContainer: {
     display: 'flex',
-    gap: '1rem',
-    flexWrap: 'wrap',
+    gap: '0.75rem',
+    marginTop: '0.5rem',
   },
   buttonAdd: {
-    padding: '0.9rem',
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#4299e1',
+    color: 'white',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
   buttonSave: {
-    padding: '0.9rem',
-    backgroundColor: '#059669',
-    color: '#ffffff',
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#48bb78',
+    color: 'white',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
   buttonCancel: {
-    padding: '0.9rem',
-    backgroundColor: '#6b7280',
-    color: '#ffffff',
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#a0aec0',
+    color: 'white',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
   filterContainer: {
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: '1rem',
-    marginBottom: '2rem',
-    alignItems: 'center',
+    flexDirection: 'column',
+    gap: '0.75rem',
+    marginBottom: '1.25rem',
   },
   inputFilter: {
-    flex: '1 1 200px',
-    padding: '0.9rem 1rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    color: '#374151',
-    backgroundColor: '#f9fafb',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
+    width: '100%',
+    padding: '0.75rem',
+    border: '1px solid #e2e8f0',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    color: '#2d3748',
+    backgroundColor: '#f8fafc',
     outline: 'none',
   },
   buttonExport: {
-    padding: '0.9rem 1.5rem',
-    backgroundColor: '#16a34a',
-    color: '#ffffff',
+    width: '100%',
+    padding: '0.75rem',
+    backgroundColor: '#38a169',
+    color: 'white',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
   list: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem',
   },
   listItem: {
-    backgroundColor: '#f9fafb',
-    padding: '1.5rem',
-    marginBottom: '1rem',
-    borderRadius: '10px',
+    backgroundColor: '#f8fafc',
+    padding: '1rem',
+    borderRadius: '0.75rem',
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-    transition: 'transform 0.2s',
+    flexDirection: 'column',
+    gap: '0.75rem',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
   },
   itemInfo: {
-    flex: '1 1 60%',
-    minWidth: '200px',
+    flex: 1,
   },
   itemTitle: {
-    fontSize: '1.1rem',
-    color: '#1f2937',
+    fontSize: '1rem',
+    color: '#2d3748',
     fontWeight: '600',
-    marginBottom: '0.5rem',
+    marginBottom: '0.25rem',
   },
   itemDetails: {
-    fontSize: '0.95rem',
-    color: '#6b7280',
-    margin: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.25rem',
+    fontSize: '0.875rem',
+    color: '#4a5568',
+  },
+  itemAmount: {
+    fontWeight: '500',
+    color: '#2b6cb0',
+  },
+  itemDate: {
+    color: '#718096',
   },
   actions: {
     display: 'flex',
-    gap: '0.75rem',
+    gap: '0.5rem',
     flexWrap: 'wrap',
-    alignItems: 'center',
   },
   viewButton: {
-    padding: '0.6rem 1.2rem',
-    backgroundColor: '#0284c7',
-    color: '#ffffff',
+    padding: '0.5rem 0.75rem',
+    backgroundColor: '#3182ce',
+    color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.9rem',
+    borderRadius: '0.375rem',
+    fontSize: '0.85rem',
     fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
   },
   editButton: {
-    padding: '0.6rem 1.2rem',
-    backgroundColor: '#f59e0b',
-    color: '#ffffff',
+    padding: '0.5rem 0.75rem',
+    backgroundColor: '#dd6b20',
+    color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.9rem',
+    borderRadius: '0.375rem',
+    fontSize: '0.85rem',
     fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
   },
   deleteButton: {
-    padding: '0.6rem 1.2rem',
-    backgroundColor: '#dc2626',
-    color: '#ffffff',
+    padding: '0.5rem 0.75rem',
+    backgroundColor: '#e53e3e',
+    color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.9rem',
+    borderRadius: '0.375rem',
+    fontSize: '0.85rem',
     fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
+  },
+  noDataContainer: {
+    textAlign: 'center',
+    padding: '1.5rem',
+    backgroundColor: '#f8fafc',
+    borderRadius: '0.5rem',
   },
   noData: {
-    textAlign: 'center',
-    fontSize: '1rem',
-    color: '#6b7280',
-    marginTop: '2rem',
+    fontSize: '0.95rem',
+    color: '#718096',
   }
 };
 
