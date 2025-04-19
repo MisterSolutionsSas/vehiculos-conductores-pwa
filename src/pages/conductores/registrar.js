@@ -67,29 +67,44 @@ const RegistrarConductor = () => {
     }
   };
 
+  const handleCancel = () => {
+    const confirmar = window.confirm('¿Estás seguro de que deseas cancelar? Los datos ingresados se perderán.');
+    if (confirmar) {
+      router.push('/conductores');
+    }
+  };
+
   const styles = {
     container: {
-      padding: isMobile ? '1rem' : '2rem',
-      backgroundColor: '#f8fafc',
+      padding: isMobile ? '1rem' : '1.5rem',
+      backgroundColor: '#f5f7fa',
       minHeight: '100vh',
-      fontFamily: "'Inter', sans-serif",
-      maxWidth: '800px',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      maxWidth: '100%',
       margin: '0 auto'
     },
+    header: {
+      marginBottom: '1.5rem',
+      padding: '0 0.5rem',
+    },
     title: {
-      textAlign: 'center',
-      marginBottom: '2rem',
-      color: '#1f2937',
-      fontSize: isMobile ? '1.8rem' : '2.2rem',
-      fontWeight: '700'
+      fontSize: isMobile ? '1.5rem' : '1.8rem',
+      fontWeight: '600',
+      color: '#1a202c',
+      marginBottom: '0.5rem',
+    },
+    subtitle: {
+      fontSize: '1rem',
+      color: '#4a5568',
     },
     form: {
       backgroundColor: '#ffffff',
-      padding: '2rem',
-      borderRadius: '12px',
-      boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
-      display: 'grid',
-      gap: '1.5rem'
+      padding: isMobile ? '1.25rem' : '1.5rem',
+      borderRadius: '0.75rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1.25rem'
     },
     inputGroup: {
       display: 'flex',
@@ -97,46 +112,68 @@ const RegistrarConductor = () => {
       gap: '0.5rem'
     },
     label: {
-      fontSize: '1rem',
-      color: '#4b5563',
-      fontWeight: '600'
+      fontSize: '0.95rem',
+      color: '#4a5568',
+      fontWeight: '500'
     },
     input: {
-      padding: '0.9rem 1rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '8px',
-      fontSize: '1rem',
-      color: '#374151',
-      backgroundColor: '#f9fafb',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
+      padding: '0.75rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '0.5rem',
+      fontSize: '0.95rem',
+      color: '#2d3748',
+      backgroundColor: '#f8fafc',
       outline: 'none',
+      width: '100%',
       ':focus': {
-        borderColor: '#3b82f6',
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)'
+        borderColor: '#4299e1',
+        boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.2)'
       }
     },
+    buttonsContainer: {
+      display: 'flex',
+      gap: '0.75rem',
+      marginTop: '0.5rem'
+    },
     button: {
-      padding: '1rem',
-      backgroundColor: '#2563eb',
-      color: '#ffffff',
+      flex: 1,
+      padding: '0.75rem',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '1rem',
-      fontWeight: '600',
+      borderRadius: '0.5rem',
+      fontSize: '0.95rem',
+      fontWeight: '500',
       cursor: 'pointer',
-      transition: 'background-color 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '0.5rem',
+      transition: 'opacity 0.2s'
+    },
+    submitButton: {
+      backgroundColor: '#4299e1',
+      color: 'white',
       ':hover': {
-        backgroundColor: '#1d4ed8'
+        opacity: 0.9
       },
       ':disabled': {
         opacity: 0.7,
         cursor: 'not-allowed'
       }
     },
+    cancelButton: {
+      backgroundColor: '#e2e8f0',
+      color: '#4a5568',
+      ':hover': {
+        backgroundColor: '#cbd5e0'
+      }
+    },
     error: {
-      color: '#dc2626',
+      color: '#e53e3e',
       textAlign: 'center',
-      fontSize: '0.95rem',
+      fontSize: '0.9rem',
+      padding: '0.5rem',
+      backgroundColor: '#fff5f5',
+      borderRadius: '0.375rem',
       marginTop: '0.5rem'
     }
   };
@@ -144,29 +181,34 @@ const RegistrarConductor = () => {
   return (
     <div style={styles.container}>
       <Navbar isMobile={isMobile} />
-      <h1 style={styles.title}>Registrar Nuevo Conductor</h1>
+      <div style={styles.header}>
+        <h1 style={styles.title}>📝 Registrar Conductor</h1>
+        <p style={styles.subtitle}>Complete todos los campos obligatorios</p>
+      </div>
       
       <form style={styles.form} onSubmit={handleSubmit}>
         <div style={styles.inputGroup}>
-          <label style={styles.label}>Nombre completo</label>
+          <label style={styles.label}>Nombre completo *</label>
           <input
             type="text"
             name="nombre"
             value={formData.nombre}
             onChange={handleChange}
             style={styles.input}
+            placeholder="Ej: Juan Pérez"
             required
           />
         </div>
 
         <div style={styles.inputGroup}>
-          <label style={styles.label}>Documento de identidad</label>
+          <label style={styles.label}>Documento de identidad *</label>
           <input
             type="text"
             name="documento"
             value={formData.documento}
             onChange={handleChange}
             style={styles.input}
+            placeholder="Ej: 1234567890"
             required
           />
         </div>
@@ -179,18 +221,19 @@ const RegistrarConductor = () => {
             value={formData.telefono}
             onChange={handleChange}
             style={styles.input}
-            required
+            placeholder="Ej: 3001234567"
           />
         </div>
 
         <div style={styles.inputGroup}>
-          <label style={styles.label}>Número de licencia</label>
+          <label style={styles.label}>Número de licencia *</label>
           <input
             type="text"
             name="numeroLicencia"
             value={formData.numeroLicencia}
             onChange={handleChange}
             style={styles.input}
+            placeholder="Ej: ABC123456"
             required
           />
         </div>
@@ -203,7 +246,7 @@ const RegistrarConductor = () => {
             value={formData.categoriaLicencia}
             onChange={handleChange}
             style={styles.input}
-            required
+            placeholder="Ej: B1, C1, etc."
           />
         </div>
 
@@ -215,19 +258,27 @@ const RegistrarConductor = () => {
             value={formData.licenciaVigencia}
             onChange={handleChange}
             style={styles.input}
-            required
           />
         </div>
 
-        <button 
-          type="submit" 
-          style={styles.button}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Registrando...' : 'Registrar Conductor'}
-        </button>
+        <div style={styles.buttonsContainer}>
+          <button 
+            type="button"
+            onClick={handleCancel}
+            style={{ ...styles.button, ...styles.cancelButton }}
+          >
+            ❌ Cancelar
+          </button>
+          <button 
+            type="submit" 
+            style={{ ...styles.button, ...styles.submitButton }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? '⏳ Guardando...' : '✅ Registrar'}
+          </button>
+        </div>
 
-        {error && <p style={styles.error}>{error}</p>}
+        {error && <div style={styles.error}>⚠️ {error}</div>}
       </form>
     </div>
   );

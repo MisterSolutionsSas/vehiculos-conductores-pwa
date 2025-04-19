@@ -13,6 +13,7 @@ export default function RegistrarVehiculo() {
     ultimoCambioAceite: ''
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -25,6 +26,7 @@ export default function RegistrarVehiculo() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (
       !vehiculo.conductor ||
@@ -36,6 +38,7 @@ export default function RegistrarVehiculo() {
       !vehiculo.tecnoMecanicaVigencia
     ) {
       alert('Por favor, complete todos los campos obligatorios.');
+      setIsSubmitting(false);
       return;
     }
 
@@ -44,83 +47,110 @@ export default function RegistrarVehiculo() {
     const placaExistente = vehiculos.find(v => v.placa === vehiculo.placa);
     if (placaExistente) {
       alert('Ya existe un vehículo registrado con esta placa.');
+      setIsSubmitting(false);
       return;
     }
 
-    vehiculos.push(vehiculo);
+    vehiculos.push({
+      ...vehiculo,
+      id: Date.now(),
+      createdAt: new Date().toISOString()
+    });
     localStorage.setItem('vehiculos', JSON.stringify(vehiculos));
 
     router.push('/vehiculos');
   };
 
+  const handleCancel = () => {
+    const confirmar = window.confirm('¿Estás seguro de que deseas cancelar? Los datos ingresados se perderán.');
+    if (confirmar) {
+      router.push('/vehiculos');
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.formContainer}>
-        <h2 style={styles.title}>Registrar Vehículo</h2>
+        <div style={styles.header}>
+          <h2 style={styles.title}>🚗 Registrar Vehículo</h2>
+          <p style={styles.subtitle}>Complete los datos del vehículo</p>
+        </div>
+        
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="conductor">Nombre del Conductor</label>
+            <label style={styles.label} htmlFor="conductor">Conductor *</label>
             <input
               id="conductor"
               name="conductor"
-              placeholder="Ingrese el nombre del conductor"
+              placeholder="Nombre del conductor"
               value={vehiculo.conductor}
               onChange={handleChange}
               style={styles.input}
               required
             />
           </div>
+          
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="placa">Placa</label>
+            <label style={styles.label} htmlFor="placa">Placa *</label>
             <input
               id="placa"
               name="placa"
-              placeholder="Ingrese la placa"
+              placeholder="Ej: ABC123"
               value={vehiculo.placa}
               onChange={handleChange}
               style={styles.input}
               required
             />
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="marca">Marca</label>
-            <input
-              id="marca"
-              name="marca"
-              placeholder="Ingrese la marca"
-              value={vehiculo.marca}
-              onChange={handleChange}
-              style={styles.input}
-              required
-            />
+
+          <div style={styles.formRow}>
+            <div style={{...styles.formGroup, flex: 1}}>
+              <label style={styles.label} htmlFor="marca">Marca *</label>
+              <input
+                id="marca"
+                name="marca"
+                placeholder="Ej: Toyota"
+                value={vehiculo.marca}
+                onChange={handleChange}
+                style={styles.input}
+                required
+              />
+            </div>
+            
+            <div style={{...styles.formGroup, flex: 1}}>
+              <label style={styles.label} htmlFor="modelo">Modelo *</label>
+              <input
+                id="modelo"
+                name="modelo"
+                placeholder="Ej: Corolla"
+                value={vehiculo.modelo}
+                onChange={handleChange}
+                style={styles.input}
+                required
+              />
+            </div>
           </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="modelo">Modelo</label>
-            <input
-              id="modelo"
-              name="modelo"
-              placeholder="Ingrese el modelo"
-              value={vehiculo.modelo}
-              onChange={handleChange}
-              style={styles.input}
-              required
-            />
+
+          <div style={styles.formRow}>
+            <div style={{...styles.formGroup, flex: 1}}>
+              <label style={styles.label} htmlFor="año">Año *</label>
+              <input
+                id="año"
+                type="number"
+                name="año"
+                placeholder="Ej: 2020"
+                min="1900"
+                max={new Date().getFullYear() + 1}
+                value={vehiculo.año}
+                onChange={handleChange}
+                style={styles.input}
+                required
+              />
+            </div>
           </div>
+
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="año">Año</label>
-            <input
-              id="año"
-              type="number"
-              name="año"
-              placeholder="Ingrese el año"
-              value={vehiculo.año}
-              onChange={handleChange}
-              style={styles.input}
-              required
-            />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="soatVigencia">Vigencia del SOAT</label>
+            <label style={styles.label} htmlFor="soatVigencia">Vigencia SOAT *</label>
             <input
               id="soatVigencia"
               type="date"
@@ -131,8 +161,9 @@ export default function RegistrarVehiculo() {
               required
             />
           </div>
+
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="tecnoMecanicaVigencia">Vigencia de la Técnico-mecánica</label>
+            <label style={styles.label} htmlFor="tecnoMecanicaVigencia">Vigencia Técnico-mecánica *</label>
             <input
               id="tecnoMecanicaVigencia"
               type="date"
@@ -143,8 +174,9 @@ export default function RegistrarVehiculo() {
               required
             />
           </div>
+
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="ultimoCambioAceite">Fecha del Último Cambio de Aceite</label>
+            <label style={styles.label} htmlFor="ultimoCambioAceite">Último cambio de aceite</label>
             <input
               id="ultimoCambioAceite"
               type="date"
@@ -154,14 +186,21 @@ export default function RegistrarVehiculo() {
               style={styles.input}
             />
           </div>
+
           <div style={styles.buttonContainer}>
-            <button type="submit" style={styles.submitButton}>Registrar</button>
-            <button
+            <button 
               type="button"
-              onClick={() => router.push('/vehiculos')}
+              onClick={handleCancel}
               style={styles.cancelButton}
             >
-              Volver
+              ❌ Cancelar
+            </button>
+            <button 
+              type="submit" 
+              style={styles.submitButton}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? '⏳ Registrando...' : '✅ Registrar'}
             </button>
           </div>
         </form>
@@ -172,101 +211,113 @@ export default function RegistrarVehiculo() {
 
 const styles = {
   container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '2rem 1rem',
-    backgroundColor: '#f7fafc',
+    padding: '1rem',
+    backgroundColor: '#f5f7fa',
     minHeight: '100vh',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
   },
   formContainer: {
     backgroundColor: '#ffffff',
-    padding: '2.5rem',
-    borderRadius: '12px',
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
-    width: '100%',
+    padding: '1.25rem',
+    borderRadius: '0.75rem',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     maxWidth: '600px',
     margin: '0 auto',
   },
+  header: {
+    marginBottom: '1.5rem',
+  },
   title: {
-    fontSize: '1.75rem',
-    fontWeight: '700',
+    fontSize: '1.5rem',
+    fontWeight: '600',
     color: '#1a202c',
-    marginBottom: '2rem',
-    textAlign: 'center',
+    marginBottom: '0.25rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  subtitle: {
+    fontSize: '0.95rem',
+    color: '#4a5568',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '1.5rem',
+    gap: '1rem',
+  },
+  formRow: {
+    display: 'flex',
+    gap: '0.75rem',
+    width: '100%',
   },
   formGroup: {
     display: 'flex',
     flexDirection: 'column',
     gap: '0.5rem',
+    marginBottom: '0.5rem',
   },
   label: {
     fontSize: '0.875rem',
-    fontWeight: '600',
-    color: '#2d3748',
-    textAlign: 'left',
+    fontWeight: '500',
+    color: '#4a5568',
   },
   input: {
-    padding: '0.875rem 1rem',
-    fontSize: '1rem',
-    borderRadius: '8px',
+    padding: '0.75rem',
     border: '1px solid #e2e8f0',
-    backgroundColor: '#f7fafc',
-    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    color: '#2d3748',
+    backgroundColor: '#f8fafc',
     outline: 'none',
     width: '100%',
-    boxSizing: 'border-box',
     ':focus': {
-      borderColor: '#3182ce',
-      boxShadow: '0 0 0 3px rgba(49, 130, 206, 0.2)',
+      borderColor: '#4299e1',
+      boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.2)',
     },
   },
   buttonContainer: {
     display: 'flex',
-    gap: '1rem',
-    justifyContent: 'flex-end',
-    marginTop: '1.5rem',
+    gap: '0.75rem',
+    marginTop: '1rem',
   },
   submitButton: {
-    backgroundColor: '#2b6cb0',
-    color: '#ffffff',
-    padding: '0.875rem 1.5rem',
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#4299e1',
+    color: 'white',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s ease, transform 0.1s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
     ':hover': {
-      backgroundColor: '#2c5282',
-      transform: 'translateY(-1px)',
+      opacity: 0.9,
     },
-    ':active': {
-      transform: 'translateY(0)',
+    ':disabled': {
+      opacity: 0.7,
+      cursor: 'not-allowed',
     },
   },
   cancelButton: {
-    backgroundColor: '#edf2f7',
+    flex: 1,
+    padding: '0.75rem',
+    backgroundColor: '#e2e8f0',
     color: '#4a5568',
-    padding: '0.875rem 1.5rem',
-    border: '1px solid #e2e8f0',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
+    border: 'none',
+    borderRadius: '0.5rem',
+    fontSize: '0.95rem',
+    fontWeight: '500',
     cursor: 'pointer',
-    transition: 'background-color 0.2s ease, transform 0.1s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
     ':hover': {
-      backgroundColor: '#e2e8f0',
-      transform: 'translateY(-1px)',
-    },
-    ':active': {
-      transform: 'translateY(0)',
+      backgroundColor: '#cbd5e0',
     },
   },
 };
