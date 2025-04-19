@@ -13,6 +13,16 @@ const Vehiculos = () => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  // Persistir búsqueda en localStorage
+  useEffect(() => {
+    const busquedaGuardada = localStorage.getItem('busquedaVehiculos') || '';
+    setBusqueda(busquedaGuardada);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('busquedaVehiculos', busqueda);
+  }, [busqueda]);
+
   // Detectar si es móvil
   useEffect(() => {
     const handleResize = () => {
@@ -49,7 +59,7 @@ const Vehiculos = () => {
     return new Date(fecha).toLocaleDateString('es-ES', opciones);
   }, []);
 
-  // Calcular alertas de vencimiento
+  // Calcular alertas de vencimiento para SOAT y Técnico-mecánica
   const obtenerAlertaVencimiento = useCallback((fechaVigencia) => {
     if (!fechaVigencia) return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
     
@@ -78,6 +88,39 @@ const Vehiculos = () => {
     return { fecha: fechaFormateada, mensaje, color, icon };
   }, [formatearFecha]);
 
+  // Calcular alertas para cambio de aceite (cada 2 meses, alerta 7 días antes)
+  const obtenerAlertaCambioAceite = useCallback((fechaUltimoCambio) => {
+    if (!fechaUltimoCambio) return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
+
+    const fechaCambio = new Date(fechaUltimoCambio);
+    const fechaProximoCambio = new Date(fechaCambio);
+    fechaProximoCambio.setDate(fechaCambio.getDate() + 60); // Próximo cambio en 2 meses (60 días)
+    
+    const hoy = new Date();
+    const diferencia = Math.floor((fechaProximoCambio - hoy) / (1000 * 60 * 60 * 24));
+    const diasDesdeCambio = Math.floor((hoy - fechaCambio) / (1000 * 60 * 60 * 24));
+
+    const fechaFormateada = formatearFecha(fechaUltimoCambio);
+    let mensaje = '';
+    let color = 'transparent';
+    let icon = '';
+
+    if (diferencia <= 0) {
+      mensaje = `Vencido (${Math.abs(diferencia)} días)`;
+      color = '#fee2e2';
+      icon = '❗';
+    } else if (diferencia <= 7) {
+      mensaje = `Próximo en ${diferencia} días`;
+      color = '#ffedd5';
+      icon = '⚠️';
+    } else {
+      mensaje = `Último cambio hace ${diasDesdeCambio} días`;
+      icon = '✅';
+    }
+
+    return { fecha: fechaFormateada, mensaje, color, icon };
+  }, [formatearFecha]);
+
   // Filtrar vehículos
   const vehiculosFiltrados = useMemo(() => {
     let resultado = vehiculos.filter(vehiculo => {
@@ -96,7 +139,11 @@ const Vehiculos = () => {
           ? Math.floor((new Date(vehiculo.tecnoMecanicaVigencia) - new Date()) / (1000 * 60 * 60 * 24))
           : Infinity;
         
-        return soatDiferencia <= 15 || tecnoDiferencia <= 15;
+        const aceiteDiferencia = vehiculo.ultimoCambioAceite
+          ? Math.floor((new Date(new Date(vehiculo.ultimoCambioAceite).setDate(new Date(vehiculo.ultimoCambioAceite).getDate() + 60)) - new Date()) / (1000 * 60 * 60 * 24))
+          : Infinity;
+
+        return soatDiferencia <= 15 || tecnoDiferencia <= 15 || aceiteDiferencia <= 7;
       });
     }
 
@@ -138,6 +185,7 @@ const Vehiculos = () => {
       'Año': vehiculo.año || 'N/A',
       'SOAT': `${formatearFecha(vehiculo.soatVigencia)} - ${obtenerAlertaVencimiento(vehiculo.soatVigencia).mensaje}`,
       'TecnoMecánica': `${formatearFecha(vehiculo.tecnoMecanicaVigencia)} - ${obtenerAlertaVencimiento(vehiculo.tecnoMecanicaVigencia).mensaje}`,
+      'Último Cambio Aceite': `${formatearFecha(vehiculo.ultimoCambioAceite)} - ${obtenerAlertaCambioAceite(vehiculo.ultimoCambioAceite).mensaje}`,
     }));
 
     const ws = XLSX.utils.json_to_sheet(vehiculosParaExportar);
@@ -149,7 +197,8 @@ const Vehiculos = () => {
       { wch: 15 },  // Modelo
       { wch: 8 },   // Año
       { wch: 30 },  // SOAT
-      { wch: 30 }   // TecnoMecánica
+      { wch: 30 },  // TecnoMecánica
+      { wch: 30 },  // Último Cambio Aceite
     ];
     
     ws['!cols'] = columnWidths;
@@ -157,64 +206,64 @@ const Vehiculos = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Vehículos');
     XLSX.writeFile(wb, 'vehiculos.xlsx');
-  }, [vehiculosFiltrados, formatearFecha, obtenerAlertaVencimiento]);
+  }, [vehiculosFiltrados, formatearFecha, obtenerAlertaVencimiento, obtenerAlertaCambioAceite]);
 
   // Estilos responsivos
   const styles = {
     container: {
-      padding: isMobile ? '0.5rem' : '2rem 5%',
-      backgroundColor: '#f8fafc',
+      padding: isMobile ? '1rem' : '2rem 5%',
+      backgroundColor: '#f7fafc',
       minHeight: '100vh',
-      fontFamily: "'Inter', sans-serif",
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       width: '100%',
-      maxWidth: '1400px',
+      maxWidth: '1600px',
       margin: '0 auto',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
     },
     header: {
-      marginBottom: isMobile ? '1rem' : '2rem',
+      marginBottom: isMobile ? '1.5rem' : '2.5rem',
     },
     title: {
       textAlign: 'center',
-      marginBottom: isMobile ? '1rem' : '1.8rem',
-      color: '#1f2937',
-      fontSize: isMobile ? '1.5rem' : '2.2rem',
+      marginBottom: isMobile ? '1.2rem' : '2rem',
+      color: '#1a202c',
+      fontSize: isMobile ? '1.75rem' : '2.25rem',
       fontWeight: '700',
     },
     controls: {
       display: 'flex',
       flexDirection: isMobile ? 'column' : 'row',
-      gap: isMobile ? '0.8rem' : '1.5rem',
-      marginBottom: isMobile ? '1rem' : '2rem',
+      gap: isMobile ? '1rem' : '1.5rem',
+      marginBottom: isMobile ? '1.5rem' : '2.5rem',
       alignItems: 'center',
       width: '100%',
     },
     searchInput: {
-      padding: isMobile ? '1rem' : '1.2rem 1.5rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '10px',
-      fontSize: isMobile ? '1rem' : '1.2rem',
-      backgroundColor: '#fff',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+      padding: isMobile ? '0.875rem' : '1rem 1.5rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '8px',
+      fontSize: isMobile ? '0.875rem' : '1rem',
+      backgroundColor: '#ffffff',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
       width: '100%',
-      transition: 'all 0.3s ease',
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       outline: 'none',
       ':focus': {
-        borderColor: '#3b82f6',
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)'
-      }
+        borderColor: '#2b6cb0',
+        boxShadow: '0 0 0 3px rgba(43, 108, 176, 0.2)',
+      },
     },
     buttonGroup: {
       display: 'flex',
       flexDirection: isMobile ? 'column' : 'row',
-      gap: '0.8rem',
-      width: '100%',
+      gap: '0.75rem',
+      width: isMobile ? '100%' : 'auto',
     },
     button: {
-      padding: isMobile ? '1rem' : '1rem 1.5rem',
+      padding: isMobile ? '0.875rem' : '0.875rem 1.5rem',
       border: 'none',
-      borderRadius: '10px',
-      fontSize: isMobile ? '1rem' : '1rem',
+      borderRadius: '8px',
+      fontSize: isMobile ? '0.875rem' : '1rem',
       fontWeight: '600',
       cursor: 'pointer',
       display: 'flex',
@@ -222,152 +271,165 @@ const Vehiculos = () => {
       justifyContent: 'center',
       gap: '0.5rem',
       width: isMobile ? '100%' : 'auto',
-      transition: 'all 0.2s ease',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      transition: 'background-color 0.2s ease, transform 0.1s ease',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      ':hover': {
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(0)',
+      },
     },
     buttonAdd: {
-      backgroundColor: '#2563eb',
+      backgroundColor: '#2b6cb0',
       color: '#fff',
       ':hover': {
-        backgroundColor: '#1d4ed8'
-      }
+        backgroundColor: '#2c5282',
+      },
     },
     buttonExport: {
-      backgroundColor: '#16a34a',
+      backgroundColor: '#2f855a',
       color: '#fff',
       ':hover': {
-        backgroundColor: '#15803d'
-      }
+        backgroundColor: '#276749',
+      },
     },
     buttonAlerta: {
-      backgroundColor: mostrarEnAlerta ? '#d97706' : '#6b7280',
+      backgroundColor: mostrarEnAlerta ? '#d97706' : '#4a5568',
       color: '#fff',
       ':hover': {
-        backgroundColor: mostrarEnAlerta ? '#b45309' : '#4b5563'
-      }
+        backgroundColor: mostrarEnAlerta ? '#b45309' : '#2d3748',
+      },
     },
     tableContainer: {
-      backgroundColor: '#fff',
+      backgroundColor: '#ffffff',
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       width: '100%',
       overflowX: 'auto',
-      maxWidth: '100%'
+      maxWidth: '100%',
     },
     table: {
       width: '100%',
-      borderCollapse: 'collapse'
+      borderCollapse: 'collapse',
     },
     th: {
-      padding: isMobile ? '0.8rem' : '1.2rem',
+      padding: isMobile ? '0.75rem' : '1rem',
       textAlign: 'left',
-      backgroundColor: '#1f2937',
-      color: '#fff',
-      fontSize: isMobile ? '0.9rem' : '1rem',
+      backgroundColor: '#2d3748',
+      color: '#ffffff',
+      fontSize: isMobile ? '0.75rem' : '0.875rem',
       fontWeight: '600',
       position: 'sticky',
       top: 0,
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
     },
     td: {
-      padding: isMobile ? '0.8rem' : '1rem',
-      borderBottom: '1px solid #e5e7eb',
-      fontSize: isMobile ? '0.9rem' : '1rem',
+      padding: isMobile ? '0.75rem' : '1rem',
+      borderBottom: '1px solid #edf2f7',
+      fontSize: isMobile ? '0.75rem' : '0.875rem',
       verticalAlign: 'top',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
     },
     alertCell: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.3rem'
+      gap: '0.25rem',
     },
     alertText: {
-      fontSize: isMobile ? '0.8rem' : '0.9rem',
+      fontSize: isMobile ? '0.75rem' : '0.875rem',
       fontWeight: '500',
       display: 'flex',
       alignItems: 'center',
-      gap: '0.3rem'
+      gap: '0.25rem',
     },
     actions: {
       display: 'flex',
-      gap: isMobile ? '0.5rem' : '0.8rem',
-      flexWrap: 'wrap'
+      gap: isMobile ? '0.5rem' : '0.75rem',
+      flexWrap: 'wrap',
     },
     actionButton: {
-      padding: isMobile ? '0.5rem 0.8rem' : '0.6rem 1rem',
+      padding: isMobile ? '0.5rem 0.75rem' : '0.5rem 1rem',
       borderRadius: '8px',
-      fontSize: isMobile ? '0.8rem' : '0.9rem',
+      fontSize: isMobile ? '0.75rem' : '0.875rem',
       border: 'none',
       cursor: 'pointer',
       whiteSpace: 'nowrap',
-      transition: 'all 0.2s ease'
+      transition: 'background-color 0.2s ease, transform 0.1s ease',
+      ':hover': {
+        transform: 'translateY(-1px)',
+      },
+      ':active': {
+        transform: 'translateY(0)',
+      },
     },
     editButton: {
-      backgroundColor: '#f59e0b',
+      backgroundColor: '#d97706',
       color: '#fff',
       ':hover': {
-        backgroundColor: '#d97706'
-      }
+        backgroundColor: '#b45309',
+      },
     },
     deleteButton: {
-      backgroundColor: '#dc2626',
+      backgroundColor: '#c53030',
       color: '#fff',
       ':hover': {
-        backgroundColor: '#b91c1c'
-      }
+        backgroundColor: '#9b2c2c',
+      },
     },
     historialButton: {
-      backgroundColor: '#0284c7',
+      backgroundColor: '#3182ce',
       color: '#fff',
       ':hover': {
-        backgroundColor: '#0369a1'
-      }
+        backgroundColor: '#2b6cb0',
+      },
     },
     emptyState: {
       padding: isMobile ? '1.5rem' : '2.5rem',
       textAlign: 'center',
-      color: '#6b7280',
-      fontSize: isMobile ? '1rem' : '1.1rem',
-      lineHeight: '1.6'
+      color: '#4a5568',
+      fontSize: isMobile ? '0.875rem' : '1rem',
+      lineHeight: '1.6',
     },
     mobileCard: {
-      backgroundColor: '#fff',
+      backgroundColor: '#ffffff',
       borderRadius: '12px',
-      padding: '1.2rem',
+      padding: '1.25rem',
       marginBottom: '1rem',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     },
     cardHeader: {
       display: 'flex',
       justifyContent: 'space-between',
-      marginBottom: '0.8rem',
-      borderBottom: '1px solid #e5e7eb',
-      paddingBottom: '0.8rem'
+      marginBottom: '0.75rem',
+      borderBottom: '1px solid #edf2f7',
+      paddingBottom: '0.75rem',
     },
     cardTitle: {
-      fontWeight: 'bold',
-      fontSize: '1.1rem',
-      color: '#1f2937'
+      fontWeight: '600',
+      fontSize: '1rem',
+      color: '#1a202c',
     },
     cardContent: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
       gap: '1rem',
-      marginTop: '0.8rem'
+      marginTop: '0.75rem',
     },
     cardItem: {
-      marginBottom: '0.8rem'
+      marginBottom: '0.75rem',
     },
     cardLabel: {
       fontWeight: '600',
-      fontSize: '0.85rem',
-      color: '#6b7280',
-      marginBottom: '0.3rem'
+      fontSize: '0.75rem',
+      color: '#4a5568',
+      marginBottom: '0.25rem',
+      textTransform: 'uppercase', // Corrección aplicada
     },
     cardValue: {
-      fontSize: '0.95rem',
-      color: '#1f2937'
-    }
+      fontSize: '0.875rem',
+      color: '#2d3748',
+    },
   };
 
   return (
@@ -416,7 +478,7 @@ const Vehiculos = () => {
         ) : vehiculosFiltrados.length === 0 ? (
           <div style={styles.emptyState}>
             {mostrarEnAlerta 
-              ? 'No hay vehículos con documentos por vencer' 
+              ? 'No hay vehículos con documentos o cambio de aceite por vencer' 
               : busqueda
                 ? 'No se encontraron vehículos con esa búsqueda'
                 : 'No hay vehículos registrados'}
@@ -426,6 +488,7 @@ const Vehiculos = () => {
             {vehiculosFiltrados.map((vehiculo) => {
               const soatAlerta = obtenerAlertaVencimiento(vehiculo.soatVigencia);
               const tecnoAlerta = obtenerAlertaVencimiento(vehiculo.tecnoMecanicaVigencia);
+              const aceiteAlerta = obtenerAlertaCambioAceite(vehiculo.ultimoCambioAceite);
 
               return (
                 <div key={vehiculo.placa} style={styles.mobileCard}>
@@ -461,7 +524,7 @@ const Vehiculos = () => {
                         alignItems: 'center',
                         gap: '0.4rem',
                         marginTop: '0.4rem',
-                        fontSize: '0.85rem'
+                        fontSize: '0.75rem',
                       }}>
                         {soatAlerta.icon} {soatAlerta.mensaje}
                       </div>
@@ -478,21 +541,38 @@ const Vehiculos = () => {
                         alignItems: 'center',
                         gap: '0.4rem',
                         marginTop: '0.4rem',
-                        fontSize: '0.85rem'
+                        fontSize: '0.75rem',
                       }}>
                         {tecnoAlerta.icon} {tecnoAlerta.mensaje}
                       </div>
                     </div>
+                    
+                    <div style={styles.cardItem}>
+                      <div style={styles.cardLabel}>Último Cambio Aceite</div>
+                      <div style={styles.cardValue}>{aceiteAlerta.fecha}</div>
+                      <div style={{ 
+                        padding: '0.4rem 0.6rem',
+                        borderRadius: '6px',
+                        backgroundColor: aceiteAlerta.color,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        marginTop: '0.4rem',
+                        fontSize: '0.75rem',
+                      }}>
+                        {aceiteAlerta.icon} {aceiteAlerta.mensaje}
+                      </div>
+                    </div>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '0.8rem', marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
                     <button 
                       onClick={() => verHistorial(vehiculo.placa)} 
                       style={{ 
                         ...styles.actionButton, 
                         ...styles.historialButton,
                         flex: 1,
-                        padding: '0.8rem'
+                        padding: '0.75rem',
                       }}
                     >
                       📄 Historial
@@ -503,7 +583,7 @@ const Vehiculos = () => {
                         ...styles.actionButton, 
                         ...styles.editButton,
                         flex: 1,
-                        padding: '0.8rem'
+                        padding: '0.75rem',
                       }}
                     >
                       ✏️ Editar
@@ -514,7 +594,7 @@ const Vehiculos = () => {
                         ...styles.actionButton, 
                         ...styles.deleteButton,
                         flex: 1,
-                        padding: '0.8rem'
+                        padding: '0.75rem',
                       }}
                     >
                       🗑️ Eliminar
@@ -535,6 +615,7 @@ const Vehiculos = () => {
                 <th style={styles.th}>Año</th>
                 <th style={styles.th}>SOAT</th>
                 <th style={styles.th}>TecnoMecánica</th>
+                <th style={styles.th}>Último Cambio Aceite</th>
                 <th style={styles.th}>Acciones</th>
               </tr>
             </thead>
@@ -542,6 +623,7 @@ const Vehiculos = () => {
               {vehiculosFiltrados.map((vehiculo) => {
                 const soatAlerta = obtenerAlertaVencimiento(vehiculo.soatVigencia);
                 const tecnoAlerta = obtenerAlertaVencimiento(vehiculo.tecnoMecanicaVigencia);
+                const aceiteAlerta = obtenerAlertaCambioAceite(vehiculo.ultimoCambioAceite);
 
                 return (
                   <tr key={vehiculo.placa}>
@@ -563,6 +645,14 @@ const Vehiculos = () => {
                         <div>{tecnoAlerta.fecha}</div>
                         <div style={styles.alertText}>
                           {tecnoAlerta.icon} {tecnoAlerta.mensaje}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ ...styles.td, backgroundColor: aceiteAlerta.color }}>
+                      <div style={styles.alertCell}>
+                        <div>{aceiteAlerta.fecha}</div>
+                        <div style={styles.alertText}>
+                          {aceiteAlerta.icon} {aceiteAlerta.mensaje}
                         </div>
                       </div>
                     </td>

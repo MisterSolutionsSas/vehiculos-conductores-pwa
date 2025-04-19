@@ -1,5 +1,3 @@
-// /pages/vehiculos/registrar.js
-
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -11,7 +9,8 @@ export default function RegistrarVehiculo() {
     modelo: '',
     año: '',
     soatVigencia: '',
-    tecnoMecanicaVigencia: ''
+    tecnoMecanicaVigencia: '',
+    ultimoCambioAceite: ''
   });
 
   const router = useRouter();
@@ -36,7 +35,7 @@ export default function RegistrarVehiculo() {
       !vehiculo.soatVigencia ||
       !vehiculo.tecnoMecanicaVigencia
     ) {
-      alert('Por favor, complete todos los campos.');
+      alert('Por favor, complete todos los campos obligatorios.');
       return;
     }
 
@@ -57,20 +56,113 @@ export default function RegistrarVehiculo() {
   return (
     <div style={styles.container}>
       <div style={styles.formContainer}>
-        <h2>Registrar Vehículo</h2>
+        <h2 style={styles.title}>Registrar Vehículo</h2>
         <form onSubmit={handleSubmit} style={styles.form}>
-          <input name="conductor" placeholder="Nombre del Conductor" value={vehiculo.conductor} onChange={handleChange} style={styles.input} required />
-          <input name="placa" placeholder="Placa" value={vehiculo.placa} onChange={handleChange} style={styles.input} required />
-          <input name="marca" placeholder="Marca" value={vehiculo.marca} onChange={handleChange} style={styles.input} required />
-          <input name="modelo" placeholder="Modelo" value={vehiculo.modelo} onChange={handleChange} style={styles.input} required />
-          <input type="number" name="año" placeholder="Año" value={vehiculo.año} onChange={handleChange} style={styles.input} required />
-          <label style={styles.label}>Vigencia del SOAT</label>
-          <input type="date" name="soatVigencia" value={vehiculo.soatVigencia} onChange={handleChange} style={styles.input} required />
-          <label style={styles.label}>Vigencia de la Técnico-mecánica</label>
-          <input type="date" name="tecnoMecanicaVigencia" value={vehiculo.tecnoMecanicaVigencia} onChange={handleChange} style={styles.input} required />
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="conductor">Nombre del Conductor</label>
+            <input
+              id="conductor"
+              name="conductor"
+              placeholder="Ingrese el nombre del conductor"
+              value={vehiculo.conductor}
+              onChange={handleChange}
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="placa">Placa</label>
+            <input
+              id="placa"
+              name="placa"
+              placeholder="Ingrese la placa"
+              value={vehiculo.placa}
+              onChange={handleChange}
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="marca">Marca</label>
+            <input
+              id="marca"
+              name="marca"
+              placeholder="Ingrese la marca"
+              value={vehiculo.marca}
+              onChange={handleChange}
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="modelo">Modelo</label>
+            <input
+              id="modelo"
+              name="modelo"
+              placeholder="Ingrese el modelo"
+              value={vehiculo.modelo}
+              onChange={handleChange}
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="año">Año</label>
+            <input
+              id="año"
+              type="number"
+              name="año"
+              placeholder="Ingrese el año"
+              value={vehiculo.año}
+              onChange={handleChange}
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="soatVigencia">Vigencia del SOAT</label>
+            <input
+              id="soatVigencia"
+              type="date"
+              name="soatVigencia"
+              value={vehiculo.soatVigencia}
+              onChange={handleChange}
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="tecnoMecanicaVigencia">Vigencia de la Técnico-mecánica</label>
+            <input
+              id="tecnoMecanicaVigencia"
+              type="date"
+              name="tecnoMecanicaVigencia"
+              value={vehiculo.tecnoMecanicaVigencia}
+              onChange={handleChange}
+              style={styles.input}
+              required
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label} htmlFor="ultimoCambioAceite">Fecha del Último Cambio de Aceite</label>
+            <input
+              id="ultimoCambioAceite"
+              type="date"
+              name="ultimoCambioAceite"
+              value={vehiculo.ultimoCambioAceite}
+              onChange={handleChange}
+              style={styles.input}
+            />
+          </div>
           <div style={styles.buttonContainer}>
             <button type="submit" style={styles.submitButton}>Registrar</button>
-            <button type="button" onClick={() => router.push('/vehiculos')} style={styles.cancelButton}>Volver</button>
+            <button
+              type="button"
+              onClick={() => router.push('/vehiculos')}
+              style={styles.cancelButton}
+            >
+              Volver
+            </button>
           </div>
         </form>
       </div>
@@ -82,53 +174,99 @@ const styles = {
   container: {
     display: 'flex',
     justifyContent: 'center',
-    padding: '2rem',
-    backgroundColor: '#f4f4f4',
+    alignItems: 'center',
+    padding: '2rem 1rem',
+    backgroundColor: '#f7fafc',
     minHeight: '100vh',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   formContainer: {
-    backgroundColor: '#fff',
-    padding: '2rem',
-    borderRadius: '8px',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+    backgroundColor: '#ffffff',
+    padding: '2.5rem',
+    borderRadius: '12px',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
     width: '100%',
-    maxWidth: '500px',
+    maxWidth: '600px',
+    margin: '0 auto',
+  },
+  title: {
+    fontSize: '1.75rem',
+    fontWeight: '700',
+    color: '#1a202c',
+    marginBottom: '2rem',
+    textAlign: 'center',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
+    gap: '1.5rem',
   },
-  input: {
-    marginBottom: '1rem',
-    padding: '0.75rem',
-    fontSize: '1rem',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
   },
   label: {
-    marginBottom: '0.5rem',
-    fontWeight: 'bold',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#2d3748',
     textAlign: 'left',
+  },
+  input: {
+    padding: '0.875rem 1rem',
+    fontSize: '1rem',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#f7fafc',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+    ':focus': {
+      borderColor: '#3182ce',
+      boxShadow: '0 0 0 3px rgba(49, 130, 206, 0.2)',
+    },
   },
   buttonContainer: {
     display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: '1rem',
+    gap: '1rem',
+    justifyContent: 'flex-end',
+    marginTop: '1.5rem',
   },
   submitButton: {
-    backgroundColor: '#007bff',
-    color: 'white',
-    padding: '0.75rem 1.5rem',
+    backgroundColor: '#2b6cb0',
+    color: '#ffffff',
+    padding: '0.875rem 1.5rem',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: '600',
     cursor: 'pointer',
+    transition: 'background-color 0.2s ease, transform 0.1s ease',
+    ':hover': {
+      backgroundColor: '#2c5282',
+      transform: 'translateY(-1px)',
+    },
+    ':active': {
+      transform: 'translateY(0)',
+    },
   },
   cancelButton: {
-    backgroundColor: '#ccc',
-    color: '#333',
-    padding: '0.75rem 1.5rem',
-    border: 'none',
-    borderRadius: '4px',
+    backgroundColor: '#edf2f7',
+    color: '#4a5568',
+    padding: '0.875rem 1.5rem',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: '600',
     cursor: 'pointer',
+    transition: 'background-color 0.2s ease, transform 0.1s ease',
+    ':hover': {
+      backgroundColor: '#e2e8f0',
+      transform: 'translateY(-1px)',
+    },
+    ':active': {
+      transform: 'translateY(0)',
+    },
   },
 };
