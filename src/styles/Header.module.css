@@ -1,0 +1,217 @@
+/* src/styles/Header.module.css */
+
+.header {
+  background-color: #1c1c1c;
+  color: #f1f1f1;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #333;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.nav {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.logo h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.menuToggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.hamburger {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background: #f1f1f1;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.hamburger::before,
+.hamburger::after {
+  content: "";
+  position: absolute;
+  width: 25px;
+  height: 3px;
+  background: #f1f1f1;
+  transition: all 0.3s ease;
+}
+
+.hamburger::before {
+  top: -8px;
+}
+
+.hamburger::after {
+  top: 8px;
+}
+
+.menu {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3x2 en PC */
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  justify-items: center; /* Centra cada ítem */
+}
+
+.menu li a {
+  color: #f1f1f1;
+  font-size: 1rem;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px; /* Sin borde en PC */
+  transition: background 0.25s ease, color 0.25s ease;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.menu li a:hover {
+  background-color: #333;
+  color: #e60023;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.welcomeMessage {
+  font-size: 1rem; /* Estilo original en PC */
+  font-weight: 400;
+  color: #f1f1f1;
+  white-space: nowrap;
+}
+
+.logoutBtn {
+  background: #e60023;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.logoutBtn:hover {
+  background: #c4001a;
+}
+
+/* Media Queries para móviles */
+@media (max-width: 768px) {
+  .nav {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+  }
+
+  .logo h1 {
+    font-size: 1.4rem;
+  }
+
+  .menuToggle {
+    display: block;
+  }
+
+  .menu {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background-color: #1c1c1c;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    padding: 1rem 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .menuOpen {
+    display: flex;
+  }
+
+  .menu li {
+    width: 100%;
+    text-align: center;
+  }
+
+  .menu li a {
+    display: block;
+    padding: 0.8rem 1rem;
+    font-size: 1.1rem;
+    border: 2px solid #f1f1f1; /* Borde blanco solo en móvil */
+  }
+
+  .userInfo {
+    justify-content: center;
+    padding: 0.5rem 0;
+  }
+
+  .welcomeMessage {
+    font-size: 1.1rem; /* Ajustado para móviles */
+    font-weight: 600;
+    font-family: "Inter", sans-serif; /* Tipografía de Carrito Rojo */
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .menuOpen ~ .menuToggle .hamburger {
+    background: transparent;
+  }
+
+  .menuOpen ~ .menuToggle .hamburger::before {
+    transform: rotate(45deg);
+    top: 0;
+  }
+
+  .menuOpen ~ .menuToggle .hamburger::after {
+    transform: rotate(-45deg);
+    top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo h1 {
+    font-size: 1.2rem;
+  }
+
+  .welcomeMessage {
+    font-size: 1rem;
+  }
+
+  .logoutBtn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .menu li a {
+    font-size: 1rem;
+  }
+}

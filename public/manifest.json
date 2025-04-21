@@ -1,0 +1,25 @@
+{
+  "name": "Carrito Rojo",
+  "short_name": "Carrito",
+  "description": "Aplicación para gestionar pedidos e inventario de Carrito Rojo",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1c1c1c",
+  "theme_color": "#e60023",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/logocarrito192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/logocarrito512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
