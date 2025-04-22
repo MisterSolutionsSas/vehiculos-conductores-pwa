@@ -26,8 +26,8 @@ function Home() {
             <Image
               src="/logo-placeholder.png"
               alt="Logo Sistema de Gestión Vehicular"
-              width={isMobile ? 150 : 200}
-              height={isMobile ? 150 : 200}
+              width={isMobile ? 120 : 120}
+              height={isMobile ? 120 : 120}
               style={styles.logo}
               priority
             />
