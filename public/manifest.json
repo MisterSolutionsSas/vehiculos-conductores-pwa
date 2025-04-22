@@ -1,6 +1,6 @@
 {
   "name": "Sistema de Gestión Vehicular",
-  "short_name": "SGV",
+  "short_name": "Gestión Vehicular",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fafafa",
