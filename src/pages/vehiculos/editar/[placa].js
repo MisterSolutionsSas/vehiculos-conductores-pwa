@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Navbar from '../../../components/Navbar';
 import withAuth from '../../../utils/withAuth';
+import { supabase } from '../../../supabaseClient';
 
 const EditarVehiculo = () => {
   const router = useRouter();
@@ -13,12 +14,13 @@ const EditarVehiculo = () => {
     marca: '',
     modelo: '',
     año: '',
-    soatVigencia: '',
-    tecnoMecanicaVigencia: '',
-    ultimoCambioAceite: '',
+    soatvigencia: '',
+    tecnomecanicavigencia: '',
+    ultimocambioaceite: '',
   });
   const [rol, setRol] = useState('usuario');
   const [isMobile, setIsMobile] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const esSoloLectura = rol !== 'admin';
 
   // Detectar si es móvil
@@ -33,6 +35,7 @@ const EditarVehiculo = () => {
 
   // Cargar datos del vehículo y rol
   useEffect(() => {
+    // Obtener rol desde el token
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -43,21 +46,42 @@ const EditarVehiculo = () => {
       }
     }
 
-    const vehiculosGuardados = JSON.parse(localStorage.getItem('vehiculos')) || [];
-    const encontrado = vehiculosGuardados.find((v) => v.placa === placa);
-    if (encontrado) {
-      setVehiculo(encontrado);
-      setFormData({
-        conductor: encontrado.conductor || '',
-        placa: encontrado.placa || '',
-        marca: encontrado.marca || '',
-        modelo: encontrado.modelo || '',
-        año: encontrado.año || '',
-        soatVigencia: encontrado.soatVigencia || '',
-        tecnoMecanicaVigencia: encontrado.tecnoMecanicaVigencia || '',
-        ultimoCambioAceite: encontrado.ultimoCambioAceite || '',
-      });
-    }
+    // Cargar vehículo desde Supabase
+    const fetchVehiculo = async () => {
+      if (!placa) return;
+
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('vehiculos')
+          .select('*')
+          .eq('placa', placa)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setVehiculo(data);
+          setFormData({
+            conductor: data.conductor || '',
+            placa: data.placa || '',
+            marca: data.marca || '',
+            modelo: data.modelo || '',
+            año: data.año || '',
+            soatvigencia: data.soatvigencia ? data.soatvigencia.split('T')[0] : '',
+            tecnomecanicavigencia: data.tecnomecanicavigencia ? data.tecnomecanicavigencia.split('T')[0] : '',
+            ultimocambioaceite: data.ultimocambioaceite ? data.ultimocambioaceite.split('T')[0] : '',
+          });
+        }
+      } catch (error) {
+        console.error('Error al cargar vehículo:', error);
+        alert('No se pudo cargar el vehículo.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVehiculo();
   }, [placa]);
 
   // Manejar cambios en el formulario
@@ -67,31 +91,77 @@ const EditarVehiculo = () => {
 
   // Manejar envío del formulario
   const handleSubmit = useCallback(
-    (e) => {
+    async (e) => {
       e.preventDefault();
       if (esSoloLectura) return;
 
-      const vehiculosGuardados = JSON.parse(localStorage.getItem('vehiculos')) || [];
-
-      // Validar placa duplicada
-      if (formData.placa !== placa) {
-        const yaExiste = vehiculosGuardados.find((v) => v.placa === formData.placa);
-        if (yaExiste) {
-          alert('Ya existe un vehículo con esa placa.');
-          return;
-        }
+      // Validar campos obligatorios
+      if (
+        !formData.conductor ||
+        !formData.placa ||
+        !formData.marca ||
+        !formData.modelo ||
+        !formData.año ||
+        !formData.soatvigencia ||
+        !formData.tecnomecanicavigencia
+      ) {
+        alert('Por favor, complete todos los campos obligatorios.');
+        return;
       }
 
-      // Actualizar vehículo
-      const nuevosVehiculos = vehiculosGuardados.map((v) =>
-        v.placa === placa ? formData : v
-      );
+      // Validar formato del año
+      const añoNum = parseInt(formData.año, 10);
+      if (isNaN(añoNum) || añoNum < 1900 || añoNum > new Date().getFullYear() + 1) {
+        alert('Por favor, ingrese un año válido.');
+        return;
+      }
 
       try {
-        localStorage.setItem('vehiculos', JSON.stringify(nuevosVehiculos));
+        // Verificar si la nueva placa ya existe (si cambió)
+        if (formData.placa !== placa) {
+          const { data: placaExistente, error: checkError } = await supabase
+            .from('vehiculos')
+            .select('placa')
+            .eq('placa', formData.placa)
+            .single();
+
+          if (checkError && checkError.code !== 'PGRST116') {
+            throw checkError;
+          }
+
+          if (placaExistente) {
+            alert('Ya existe un vehículo con esa placa.');
+            return;
+          }
+        }
+
+        // Preparar datos para actualizar
+        const datosActualizados = {
+          conductor: formData.conductor,
+          placa: formData.placa,
+          marca: formData.marca,
+          modelo: formData.modelo,
+          año: añoNum,
+          soatvigencia: new Date(formData.soatvigencia).toISOString(),
+          tecnomecanicavigencia: new Date(formData.tecnomecanicavigencia).toISOString(),
+          ultimocambioaceite: formData.ultimocambioaceite
+            ? new Date(formData.ultimocambioaceite).toISOString()
+            : null,
+        };
+
+        // Actualizar vehículo en Supabase
+        const { error: updateError } = await supabase
+          .from('vehiculos')
+          .update(datosActualizados)
+          .eq('placa', placa);
+
+        if (updateError) {
+          throw updateError;
+        }
+
         router.push('/vehiculos');
-      } catch (err) {
-        console.error('Error al guardar vehículo:', err);
+      } catch (error) {
+        console.error('Error al actualizar vehículo:', error);
         alert('No se pudo guardar el vehículo.');
       }
     },
@@ -236,7 +306,7 @@ const EditarVehiculo = () => {
     },
   };
 
-  if (!vehiculo) {
+  if (isLoading || !vehiculo) {
     return (
       <div style={styles.container}>
         <Navbar isMobile={isMobile} />
@@ -345,14 +415,14 @@ const EditarVehiculo = () => {
           </div>
 
           <div style={styles.formGroup}>
-            <label htmlFor="soatVigencia" style={styles.label}>
+            <label htmlFor="soatvigencia" style={styles.label}>
               SOAT Vigencia
             </label>
             <input
-              id="soatVigencia"
+              id="soatvigencia"
               type="date"
-              name="soatVigencia"
-              value={formData.soatVigencia}
+              name="soatvigencia"
+              value={formData.soatvigencia}
               onChange={handleChange}
               style={styles.input}
               required
@@ -361,14 +431,14 @@ const EditarVehiculo = () => {
           </div>
 
           <div style={styles.formGroup}>
-            <label htmlFor="tecnoMecanicaVigencia" style={styles.label}>
+            <label htmlFor="tecnomecanicavigencia" style={styles.label}>
               Tecno-Mecánica Vigencia
             </label>
             <input
-              id="tecnoMecanicaVigencia"
+              id="tecnomecanicavigencia"
               type="date"
-              name="tecnoMecanicaVigencia"
-              value={formData.tecnoMecanicaVigencia}
+              name="tecnomecanicavigencia"
+              value={formData.tecnomecanicavigencia}
               onChange={handleChange}
               style={styles.input}
               required
@@ -377,14 +447,14 @@ const EditarVehiculo = () => {
           </div>
 
           <div style={styles.formGroup}>
-            <label htmlFor="ultimoCambioAceite" style={styles.label}>
+            <label htmlFor="ultimocambioaceite" style={styles.label}>
               Último Cambio de Aceite
             </label>
             <input
-              id="ultimoCambioAceite"
+              id="ultimocambioaceite"
               type="date"
-              name="ultimoCambioAceite"
-              value={formData.ultimoCambioAceite}
+              name="ultimocambioaceite"
+              value={formData.ultimocambioaceite}
               onChange={handleChange}
               style={styles.input}
               placeholder="Seleccione la fecha"
