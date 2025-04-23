@@ -1,28 +1,28 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
-import withAuth from '../../utils/withAuth';
+import { supabase } from '../../supabaseClient'; // Ajusta la ruta según la ubicación de supabaseClient.js
 
 const RegistrarConductor = () => {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [formData, setFormData] = useState({
     nombre: '',
     documento: '',
     telefono: '',
-    numeroLicencia: '',
-    categoriaLicencia: '',
-    licenciaVigencia: ''
+    numero_licencia: '',
+    categoria_licencia: '',
+    licencia_vigencia: '',
   });
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -30,9 +30,9 @@ const RegistrarConductor = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -43,21 +43,66 @@ const RegistrarConductor = () => {
 
     try {
       // Validación básica
-      if (!formData.nombre || !formData.documento || !formData.numeroLicencia) {
+      if (!formData.nombre || !formData.documento || !formData.numero_licencia) {
         throw new Error('Los campos nombre, documento y número de licencia son obligatorios');
       }
 
-      // Guardar en localStorage (simulando API)
-      const conductores = JSON.parse(localStorage.getItem('conductores')) || [];
+      // Validar formato de fecha (si se proporciona)
+      if (formData.licencia_vigencia) {
+        const fecha = new Date(formData.licencia_vigencia);
+        if (isNaN(fecha.getTime())) {
+          throw new Error('La fecha de vencimiento de la licencia no es válida');
+        }
+      }
+
+      // Verificar duplicados en Supabase
+      const { data: existingDocumento, error: documentoError } = await supabase
+        .from('conductores')
+        .select('documento')
+        .eq('documento', formData.documento)
+        .single();
+
+      if (documentoError && documentoError.code !== 'PGRST116') {
+        throw new Error('Error al verificar el documento: ' + documentoError.message);
+      }
+      if (existingDocumento) {
+        throw new Error('El documento ya está registrado');
+      }
+
+      const { data: existingLicencia, error: licenciaError } = await supabase
+        .from('conductores')
+        .select('numero_licencia')
+        .eq('numero_licencia', formData.numero_licencia)
+        .single();
+
+      if (licenciaError && licenciaError.code !== 'PGRST116') {
+        throw new Error('Error al verificar el número de licencia: ' + licenciaError.message);
+      }
+      if (existingLicencia) {
+        throw new Error('El número de licencia ya está registrado');
+      }
+
+      // Preparar datos para insertar
       const nuevoConductor = {
-        ...formData,
-        id: Date.now(),
-        createdAt: new Date().toISOString()
+        nombre: formData.nombre.trim(),
+        documento: formData.documento.trim(),
+        telefono: formData.telefono ? formData.telefono.trim() : null,
+        numero_licencia: formData.numero_licencia.trim(),
+        categoria_licencia: formData.categoria_licencia ? formData.categoria_licencia.trim() : null,
+        licencia_vigencia: formData.licencia_vigencia ? new Date(formData.licencia_vigencia).toISOString() : null,
       };
-      
-      localStorage.setItem('conductores', JSON.stringify([...conductores, nuevoConductor]));
-      
+
+      // Insertar en Supabase
+      const { error: insertError } = await supabase
+        .from('conductores')
+        .insert([nuevoConductor]);
+
+      if (insertError) {
+        throw new Error('Error al registrar el conductor: ' + insertError.message);
+      }
+
       // Redirigir después de guardar
+      alert('Conductor registrado exitosamente');
       router.push('/conductores');
     } catch (err) {
       console.error('Error:', err);
@@ -68,7 +113,9 @@ const RegistrarConductor = () => {
   };
 
   const handleCancel = () => {
-    const confirmar = window.confirm('¿Estás seguro de que deseas cancelar? Los datos ingresados se perderán.');
+    const confirmar = window.confirm(
+      '¿Estás seguro de que deseas cancelar? Los datos ingresados se perderán.'
+    );
     if (confirmar) {
       router.push('/conductores');
     }
@@ -81,7 +128,7 @@ const RegistrarConductor = () => {
       minHeight: '100vh',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       maxWidth: '100%',
-      margin: '0 auto'
+      margin: '0 auto',
     },
     header: {
       marginBottom: '1.5rem',
@@ -104,17 +151,17 @@ const RegistrarConductor = () => {
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '1.25rem'
+      gap: '1.25rem',
     },
     inputGroup: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.5rem'
+      gap: '0.5rem',
     },
     label: {
       fontSize: '0.95rem',
       color: '#4a5568',
-      fontWeight: '500'
+      fontWeight: '500',
     },
     input: {
       padding: '0.75rem',
@@ -125,15 +172,11 @@ const RegistrarConductor = () => {
       backgroundColor: '#f8fafc',
       outline: 'none',
       width: '100%',
-      ':focus': {
-        borderColor: '#4299e1',
-        boxShadow: '0 0 0 2px rgba(66, 153, 225, 0.2)'
-      }
     },
     buttonsContainer: {
       display: 'flex',
       gap: '0.75rem',
-      marginTop: '0.5rem'
+      marginTop: '0.5rem',
     },
     button: {
       flex: 1,
@@ -147,25 +190,17 @@ const RegistrarConductor = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '0.5rem',
-      transition: 'opacity 0.2s'
+      transition: 'opacity 0.2s',
     },
     submitButton: {
       backgroundColor: '#4299e1',
       color: 'white',
-      ':hover': {
-        opacity: 0.9
-      },
-      ':disabled': {
-        opacity: 0.7,
-        cursor: 'not-allowed'
-      }
+      opacity: isSubmitting ? 0.7 : 1,
+      cursor: isSubmitting ? 'not-allowed' : 'pointer',
     },
     cancelButton: {
       backgroundColor: '#e2e8f0',
       color: '#4a5568',
-      ':hover': {
-        backgroundColor: '#cbd5e0'
-      }
     },
     error: {
       color: '#e53e3e',
@@ -174,8 +209,8 @@ const RegistrarConductor = () => {
       padding: '0.5rem',
       backgroundColor: '#fff5f5',
       borderRadius: '0.375rem',
-      marginTop: '0.5rem'
-    }
+      marginTop: '0.5rem',
+    },
   };
 
   return (
@@ -185,7 +220,7 @@ const RegistrarConductor = () => {
         <h1 style={styles.title}>📝 Registrar Conductor</h1>
         <p style={styles.subtitle}>Complete todos los campos obligatorios</p>
       </div>
-      
+
       <form style={styles.form} onSubmit={handleSubmit}>
         <div style={styles.inputGroup}>
           <label style={styles.label}>Nombre completo *</label>
@@ -229,8 +264,8 @@ const RegistrarConductor = () => {
           <label style={styles.label}>Número de licencia *</label>
           <input
             type="text"
-            name="numeroLicencia"
-            value={formData.numeroLicencia}
+            name="numero_licencia"
+            value={formData.numero_licencia}
             onChange={handleChange}
             style={styles.input}
             placeholder="Ej: ABC123456"
@@ -242,8 +277,8 @@ const RegistrarConductor = () => {
           <label style={styles.label}>Categoría de licencia</label>
           <input
             type="text"
-            name="categoriaLicencia"
-            value={formData.categoriaLicencia}
+            name="categoria_licencia"
+            value={formData.categoria_licencia}
             onChange={handleChange}
             style={styles.input}
             placeholder="Ej: B1, C1, etc."
@@ -254,23 +289,23 @@ const RegistrarConductor = () => {
           <label style={styles.label}>Fecha de vencimiento</label>
           <input
             type="date"
-            name="licenciaVigencia"
-            value={formData.licenciaVigencia}
+            name="licencia_vigencia"
+            value={formData.licencia_vigencia}
             onChange={handleChange}
             style={styles.input}
           />
         </div>
 
         <div style={styles.buttonsContainer}>
-          <button 
+          <button
             type="button"
             onClick={handleCancel}
             style={{ ...styles.button, ...styles.cancelButton }}
           >
             ❌ Cancelar
           </button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             style={{ ...styles.button, ...styles.submitButton }}
             disabled={isSubmitting}
           >
@@ -284,4 +319,4 @@ const RegistrarConductor = () => {
   );
 };
 
-export default withAuth(RegistrarConductor);
+export default RegistrarConductor;

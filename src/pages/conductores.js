@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
-import withAuth from '../utils/withAuth';
 import * as XLSX from 'xlsx';
+import { supabase } from '../supabaseClient'; // Ajusta la ruta según la ubicación de supabaseClient.js
 
 const Conductores = () => {
   const [conductores, setConductores] = useState([]);
@@ -18,27 +18,34 @@ const Conductores = () => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Cargar conductores
+  // Cargar conductores desde Supabase
   useEffect(() => {
-    const fetchConductores = () => {
+    const fetchConductores = async () => {
       try {
         setIsLoading(true);
-        const localData = JSON.parse(localStorage.getItem('conductores')) || [];
-        setConductores(localData);
+        const { data, error } = await supabase
+          .from('conductores')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        setConductores(data || []);
       } catch (error) {
         console.error('Error al cargar conductores:', error);
+        alert('No se pudieron cargar los conductores.');
         setConductores([]);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchConductores();
   }, []);
 
@@ -49,49 +56,56 @@ const Conductores = () => {
     return new Date(fecha).toLocaleDateString('es-ES', opciones);
   }, []);
 
-  // Calcular alertas de vencimiento (mejorado con formato "días")
-  const obtenerAlertaVencimiento = useCallback((fechaVigencia) => {
-    if (!fechaVigencia) return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
-    
-    const fechaVencimiento = new Date(fechaVigencia);
-    const hoy = new Date();
-    const diferencia = Math.floor((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+  // Calcular alertas de vencimiento
+  const obtenerAlertaVencimiento = useCallback(
+    (fechaVigencia) => {
+      if (!fechaVigencia)
+        return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
 
-    const fechaFormateada = formatearFecha(fechaVigencia);
-    let mensaje = '';
-    let color = 'transparent';
-    let icon = '';
+      const fechaVencimiento = new Date(fechaVigencia);
+      const hoy = new Date();
+      const diferencia = Math.floor((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
 
-    if (diferencia <= 0) {
-      mensaje = `Vencido (${Math.abs(diferencia)} días)`;
-      color = '#fee2e2';
-      icon = '❗';
-    } else if (diferencia <= 15) {
-      mensaje = `Vence en ${diferencia} días`;
-      color = '#ffedd5';
-      icon = '⚠️';
-    } else {
-      mensaje = `${diferencia} días restantes`;
-      icon = '✅';
-    }
+      const fechaFormateada = formatearFecha(fechaVigencia);
+      let mensaje = '';
+      let color = 'transparent';
+      let icon = '';
 
-    return { fecha: fechaFormateada, mensaje, color, icon };
-  }, [formatearFecha]);
+      if (diferencia <= 0) {
+        mensaje = `Vencido (${Math.abs(diferencia)} días)`;
+        color = '#fee2e2';
+        icon = '❗';
+      } else if (diferencia <= 15) {
+        mensaje = `Vence en ${diferencia} días`;
+        color = '#ffedd5';
+        icon = '⚠️';
+      } else {
+        mensaje = `${diferencia} días restantes`;
+        icon = '✅';
+      }
+
+      return { fecha: fechaFormateada, mensaje, color, icon };
+    },
+    [formatearFecha]
+  );
 
   // Filtrar conductores
   const conductoresFiltrados = useMemo(() => {
-    let resultado = conductores.filter(conductor => {
+    let resultado = conductores.filter((conductor) => {
       const nombreMatch = conductor.nombre?.toLowerCase().includes(busqueda.toLowerCase());
-      const licenciaMatch = conductor.numeroLicencia?.toLowerCase().includes(busqueda.toLowerCase());
+      const licenciaMatch = conductor.numero_licencia
+        ?.toLowerCase()
+        .includes(busqueda.toLowerCase());
       return nombreMatch || licenciaMatch;
     });
 
     if (mostrarEnAlerta) {
-      resultado = resultado.filter(conductor => {
-        const licenciaDiferencia = conductor.licenciaVigencia 
-          ? Math.floor((new Date(conductor.licenciaVigencia) - new Date()) / (1000 * 60 * 60 * 24))
+      resultado = resultado.filter((conductor) => {
+        const licenciaDiferencia = conductor.licencia_vigencia
+          ? Math.floor(
+              (new Date(conductor.licencia_vigencia) - new Date()) / (1000 * 60 * 60 * 24)
+            )
           : Infinity;
-        
         return licenciaDiferencia <= 15;
       });
     }
@@ -105,54 +119,51 @@ const Conductores = () => {
     if (!confirmar) return;
 
     try {
-      // Obtener datos de localStorage
-      const localData = JSON.parse(localStorage.getItem('conductores')) || [];
-      const updatedLocalData = localData.filter(c => c.id !== id);
-      
-      // Actualizar localStorage
-      localStorage.setItem('conductores', JSON.stringify(updatedLocalData));
-      
-      // Actualizar estado
-      setConductores(updatedLocalData);
+      const { error } = await supabase.from('conductores').delete().eq('id', id);
+
+      if (error) throw error;
+
+      setConductores((prev) => prev.filter((c) => c.id !== id));
+      alert('Conductor eliminado exitosamente.');
     } catch (error) {
       console.error('Error al eliminar conductor:', error);
-      alert('No se pudo eliminar el conductor');
+      alert('No se pudo eliminar el conductor: ' + error.message);
     }
   }, []);
 
-  const editarConductor = useCallback((id) => {
-    router.push(`/conductores/editar/${id}`);
-  }, [router]);
+  const editarConductor = useCallback(
+    (id) => {
+      router.push(`/conductores/editar/${id}`);
+    },
+    [router]
+  );
 
-  const verDetalle = useCallback((id) => {
-    router.push(`/conductores/detalle/${id}`);
-  }, [router]);
-
-  // Exportar a Excel con ajuste de columnas
+  // Exportar a Excel
   const exportarAExcel = useCallback(() => {
-    const conductoresParaExportar = conductoresFiltrados.map(conductor => ({
-      'Nombre': conductor.nombre || 'N/A',
-      'Documento': conductor.documento || 'N/A',
-      'Teléfono': conductor.telefono || 'N/A',
-      'Licencia': conductor.numeroLicencia || 'N/A',
-      'Categoría': conductor.categoriaLicencia || 'N/A',
-      'Vencimiento': `${formatearFecha(conductor.licenciaVigencia)} - ${obtenerAlertaVencimiento(conductor.licenciaVigencia).mensaje}`,
+    const conductoresParaExportar = conductoresFiltrados.map((conductor) => ({
+      Nombre: conductor.nombre || 'N/A',
+      Documento: conductor.documento || 'N/A',
+      Teléfono: conductor.telefono || 'N/A',
+      Licencia: conductor.numero_licencia || 'N/A',
+      Categoría: conductor.categoria_licencia || 'N/A',
+      Vencimiento: `${formatearFecha(conductor.licencia_vigencia)} - ${
+        obtenerAlertaVencimiento(conductor.licencia_vigencia).mensaje
+      }`,
     }));
 
     const ws = XLSX.utils.json_to_sheet(conductoresParaExportar);
-    
-    // Configuración de anchos de columnas
+
     const columnWidths = [
-      { wch: 25 },  // Nombre
-      { wch: 15 },  // Documento
-      { wch: 15 },  // Teléfono
-      { wch: 15 },  // Licencia
-      { wch: 12 },  // Categoría
-      { wch: 30 }   // Vencimiento
+      { wch: 25 }, // Nombre
+      { wch: 15 }, // Documento
+      { wch: 15 }, // Teléfono
+      { wch: 15 }, // Licencia
+      { wch: 12 }, // Categoría
+      { wch: 30 }, // Vencimiento
     ];
-    
+
     ws['!cols'] = columnWidths;
-    
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Conductores');
     XLSX.writeFile(wb, 'conductores.xlsx');
@@ -168,7 +179,7 @@ const Conductores = () => {
       width: '100%',
       maxWidth: '1400px',
       margin: '0 auto',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
     },
     header: {
       marginBottom: isMobile ? '1rem' : '2rem',
@@ -198,10 +209,6 @@ const Conductores = () => {
       width: '100%',
       transition: 'all 0.3s ease',
       outline: 'none',
-      ':focus': {
-        borderColor: '#3b82f6',
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.2)'
-      }
     },
     buttonGroup: {
       display: 'flex',
@@ -222,28 +229,19 @@ const Conductores = () => {
       gap: '0.5rem',
       width: isMobile ? '100%' : 'auto',
       transition: 'all 0.2s ease',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     },
     buttonAdd: {
       backgroundColor: '#2563eb',
       color: '#fff',
-      ':hover': {
-        backgroundColor: '#1d4ed8'
-      }
     },
     buttonExport: {
       backgroundColor: '#16a34a',
       color: '#fff',
-      ':hover': {
-        backgroundColor: '#15803d'
-      }
     },
     buttonAlerta: {
       backgroundColor: mostrarEnAlerta ? '#d97706' : '#6b7280',
       color: '#fff',
-      ':hover': {
-        backgroundColor: mostrarEnAlerta ? '#b45309' : '#4b5563'
-      }
     },
     tableContainer: {
       backgroundColor: '#fff',
@@ -251,11 +249,11 @@ const Conductores = () => {
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       width: '100%',
       overflowX: 'auto',
-      maxWidth: '100%'
+      maxWidth: '100%',
     },
     table: {
       width: '100%',
-      borderCollapse: 'collapse'
+      borderCollapse: 'collapse',
     },
     th: {
       padding: isMobile ? '0.8rem' : '1.2rem',
@@ -266,31 +264,31 @@ const Conductores = () => {
       fontWeight: '600',
       position: 'sticky',
       top: 0,
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
     },
     td: {
       padding: isMobile ? '0.8rem' : '1rem',
       borderBottom: '1px solid #e5e7eb',
       fontSize: isMobile ? '0.9rem' : '1rem',
       verticalAlign: 'top',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
     },
     alertCell: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.3rem'
+      gap: '0.3rem',
     },
     alertText: {
       fontSize: isMobile ? '0.8rem' : '0.9rem',
       fontWeight: '500',
       display: 'flex',
       alignItems: 'center',
-      gap: '0.3rem'
+      gap: '0.3rem',
     },
     actions: {
       display: 'flex',
       gap: isMobile ? '0.5rem' : '0.8rem',
-      flexWrap: 'wrap'
+      flexWrap: 'wrap',
     },
     actionButton: {
       padding: isMobile ? '0.5rem 0.8rem' : '0.6rem 1rem',
@@ -299,80 +297,67 @@ const Conductores = () => {
       border: 'none',
       cursor: 'pointer',
       whiteSpace: 'nowrap',
-      transition: 'all 0.2s ease'
+      transition: 'all 0.2s ease',
     },
     editButton: {
       backgroundColor: '#f59e0b',
       color: '#fff',
-      ':hover': {
-        backgroundColor: '#d97706'
-      }
     },
     deleteButton: {
       backgroundColor: '#dc2626',
       color: '#fff',
-      ':hover': {
-        backgroundColor: '#b91c1c'
-      }
-    },
-    detailButton: {
-      backgroundColor: '#0284c7',
-      color: '#fff',
-      ':hover': {
-        backgroundColor: '#0369a1'
-      }
     },
     emptyState: {
       padding: isMobile ? '1.5rem' : '2.5rem',
       textAlign: 'center',
       color: '#6b7280',
       fontSize: isMobile ? '1rem' : '1.1rem',
-      lineHeight: '1.6'
+      lineHeight: '1.6',
     },
     mobileCard: {
       backgroundColor: '#fff',
       borderRadius: '12px',
       padding: '1.2rem',
       marginBottom: '1rem',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     },
     cardHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       marginBottom: '0.8rem',
       borderBottom: '1px solid #e5e7eb',
-      paddingBottom: '0.8rem'
+      paddingBottom: '0.8rem',
     },
     cardTitle: {
       fontWeight: 'bold',
       fontSize: '1.1rem',
-      color: '#1f2937'
+      color: '#1f2937',
     },
     cardContent: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
       gap: '1rem',
-      marginTop: '0.8rem'
+      marginTop: '0.8rem',
     },
     cardItem: {
-      marginBottom: '0.8rem'
+      marginBottom: '0.8rem',
     },
     cardLabel: {
       fontWeight: '600',
       fontSize: '0.85rem',
       color: '#6b7280',
-      marginBottom: '0.3rem'
+      marginBottom: '0.3rem',
     },
     cardValue: {
       fontSize: '0.95rem',
-      color: '#1f2937'
-    }
+      color: '#1f2937',
+    },
   };
 
   return (
     <div style={styles.container}>
       <Navbar isMobile={isMobile} />
-      
+
       <div style={styles.header}>
         <h1 style={styles.title}>Gestión de Conductores</h1>
 
@@ -384,23 +369,23 @@ const Conductores = () => {
             onChange={(e) => setBusqueda(e.target.value)}
             style={styles.searchInput}
           />
-          
+
           <div style={styles.buttonGroup}>
             <Link href="/conductores/registrar" passHref>
               <button style={{ ...styles.button, ...styles.buttonAdd }}>
                 👤 {isMobile ? 'Nuevo Conductor' : 'Registrar Conductor'}
               </button>
             </Link>
-            
-            <button 
-              onClick={exportarAExcel} 
+
+            <button
+              onClick={exportarAExcel}
               style={{ ...styles.button, ...styles.buttonExport }}
             >
               📄 {isMobile ? 'Exportar Excel' : 'Exportar a Excel'}
             </button>
-            
-            <button 
-              onClick={() => setMostrarEnAlerta(!mostrarEnAlerta)} 
+
+            <button
+              onClick={() => setMostrarEnAlerta(!mostrarEnAlerta)}
               style={{ ...styles.button, ...styles.buttonAlerta }}
             >
               {mostrarEnAlerta ? '✅ Mostrar Todos' : '⚠️ Licencias por Vencer'}
@@ -414,88 +399,79 @@ const Conductores = () => {
           <div style={styles.emptyState}>Cargando conductores...</div>
         ) : conductoresFiltrados.length === 0 ? (
           <div style={styles.emptyState}>
-            {mostrarEnAlerta 
-              ? 'No hay conductores con licencias por vencer' 
+            {mostrarEnAlerta
+              ? 'No hay conductores con licencias por vencer'
               : busqueda
-                ? 'No se encontraron conductores con esa búsqueda'
-                : 'No hay conductores registrados'}
+              ? 'No se encontraron conductores con esa búsqueda'
+              : 'No hay conductores registrados'}
           </div>
         ) : isMobile ? (
           <div>
             {conductoresFiltrados.map((conductor) => {
-              const licenciaAlerta = obtenerAlertaVencimiento(conductor.licenciaVigencia);
+              const licenciaAlerta = obtenerAlertaVencimiento(conductor.licencia_vigencia);
 
               return (
                 <div key={conductor.id} style={styles.mobileCard}>
                   <div style={styles.cardHeader}>
                     <div style={styles.cardTitle}>{conductor.nombre || 'N/A'}</div>
-                    <div style={styles.cardTitle}>{conductor.numeroLicencia || 'N/A'}</div>
+                    <div style={styles.cardTitle}>{conductor.numero_licencia || 'N/A'}</div>
                   </div>
-                  
+
                   <div style={styles.cardContent}>
                     <div style={styles.cardItem}>
                       <div style={styles.cardLabel}>Documento</div>
                       <div style={styles.cardValue}>{conductor.documento || 'N/A'}</div>
                     </div>
-                    
+
                     <div style={styles.cardItem}>
                       <div style={styles.cardLabel}>Teléfono</div>
                       <div style={styles.cardValue}>{conductor.telefono || 'N/A'}</div>
                     </div>
-                    
+
                     <div style={styles.cardItem}>
                       <div style={styles.cardLabel}>Categoría</div>
-                      <div style={styles.cardValue}>{conductor.categoriaLicencia || 'N/A'}</div>
+                      <div style={styles.cardValue}>{conductor.categoria_licencia || 'N/A'}</div>
                     </div>
-                    
+
                     <div style={styles.cardItem}>
                       <div style={styles.cardLabel}>Licencia</div>
                       <div style={styles.cardValue}>{licenciaAlerta.fecha}</div>
-                      <div style={{ 
-                        padding: '0.4rem 0.6rem',
-                        borderRadius: '6px',
-                        backgroundColor: licenciaAlerta.color,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        marginTop: '0.4rem',
-                        fontSize: '0.85rem'
-                      }}>
+                      <div
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: '6px',
+                          backgroundColor: licenciaAlerta.color,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          marginTop: '0.4rem',
+                          fontSize: '0.85rem',
+                        }}
+                      >
                         {licenciaAlerta.icon} {licenciaAlerta.mensaje}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', gap: '0.8rem', marginTop: '1rem' }}>
-                    <button 
-                      onClick={() => verDetalle(conductor.id)} 
-                      style={{ 
-                        ...styles.actionButton, 
-                        ...styles.detailButton,
-                        flex: 1,
-                        padding: '0.8rem'
-                      }}
-                    >
-                      📄 Detalle
-                    </button>
-                    <button 
-                      onClick={() => editarConductor(conductor.id)} 
-                      style={{ 
-                        ...styles.actionButton, 
+                    <button
+                      onClick={() => editarConductor(conductor.id)}
+                      style={{
+                        ...styles.actionButton,
                         ...styles.editButton,
                         flex: 1,
-                        padding: '0.8rem'
+                        padding: '0.8rem',
                       }}
                     >
                       ✏️ Editar
                     </button>
-                    <button 
-                      onClick={() => eliminarConductor(conductor.id)} 
-                      style={{ 
-                        ...styles.actionButton, 
+                    <button
+                      onClick={() => eliminarConductor(conductor.id)}
+                      style={{
+                        ...styles.actionButton,
                         ...styles.deleteButton,
                         flex: 1,
-                        padding: '0.8rem'
+                        padding: '0.8rem',
                       }}
                     >
                       🗑️ Eliminar
@@ -520,15 +496,15 @@ const Conductores = () => {
             </thead>
             <tbody>
               {conductoresFiltrados.map((conductor) => {
-                const licenciaAlerta = obtenerAlertaVencimiento(conductor.licenciaVigencia);
+                const licenciaAlerta = obtenerAlertaVencimiento(conductor.licencia_vigencia);
 
                 return (
                   <tr key={conductor.id}>
                     <td style={styles.td}>{conductor.nombre || 'N/A'}</td>
                     <td style={styles.td}>{conductor.documento || 'N/A'}</td>
                     <td style={styles.td}>{conductor.telefono || 'N/A'}</td>
-                    <td style={styles.td}>{conductor.numeroLicencia || 'N/A'}</td>
-                    <td style={styles.td}>{conductor.categoriaLicencia || 'N/A'}</td>
+                    <td style={styles.td}>{conductor.numero_licencia || 'N/A'}</td>
+                    <td style={styles.td}>{conductor.categoria_licencia || 'N/A'}</td>
                     <td style={{ ...styles.td, backgroundColor: licenciaAlerta.color }}>
                       <div style={styles.alertCell}>
                         <div>{licenciaAlerta.fecha}</div>
@@ -539,20 +515,14 @@ const Conductores = () => {
                     </td>
                     <td style={styles.td}>
                       <div style={styles.actions}>
-                        <button 
-                          onClick={() => verDetalle(conductor.id)} 
-                          style={{ ...styles.actionButton, ...styles.detailButton }}
-                        >
-                          Detalle
-                        </button>
-                        <button 
-                          onClick={() => editarConductor(conductor.id)} 
+                        <button
+                          onClick={() => editarConductor(conductor.id)}
                           style={{ ...styles.actionButton, ...styles.editButton }}
                         >
                           Editar
                         </button>
-                        <button 
-                          onClick={() => eliminarConductor(conductor.id)} 
+                        <button
+                          onClick={() => eliminarConductor(conductor.id)}
                           style={{ ...styles.actionButton, ...styles.deleteButton }}
                         >
                           Eliminar
@@ -570,4 +540,4 @@ const Conductores = () => {
   );
 };
 
-export default withAuth(Conductores);
+export default Conductores;
