@@ -42,7 +42,6 @@ const Vehiculos = () => {
           .select('*');
 
         if (error) throw error;
-        
         setVehiculos(data || []);
       } catch (error) {
         console.error('Error al cargar vehículos desde Supabase:', error);
@@ -56,15 +55,28 @@ const Vehiculos = () => {
   }, []);
 
   const formatearFecha = useCallback((fecha) => {
-    if (!fecha) return 'N/A';
-    const opciones = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(fecha).toLocaleDateString('es-ES', opciones);
+    if (!fecha || fecha === null || fecha === undefined) return 'N/A';
+    try {
+      const fechaParsed = new Date(fecha);
+      if (isNaN(fechaParsed.getTime())) return 'N/A';
+      const opciones = { year: 'numeric', month: 'short', day: 'numeric' };
+      return fechaParsed.toLocaleDateString('es-ES', opciones);
+    } catch (error) {
+      console.error('Error al formatear fecha:', fecha, error);
+      return 'N/A';
+    }
   }, []);
 
   const obtenerAlertaVencimiento = useCallback((fechaVigencia) => {
-    if (!fechaVigencia) return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
+    if (!fechaVigencia || fechaVigencia === null || fechaVigencia === undefined) {
+      return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
+    }
     
     const fechaVencimiento = new Date(fechaVigencia);
+    if (isNaN(fechaVencimiento.getTime())) {
+      return { fecha: 'N/A', mensaje: 'Fecha inválida', color: 'transparent', icon: '❓' };
+    }
+    
     const hoy = new Date();
     const diferencia = Math.floor((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
 
@@ -90,9 +102,15 @@ const Vehiculos = () => {
   }, [formatearFecha]);
 
   const obtenerAlertaCambioAceite = useCallback((fechaUltimoCambio) => {
-    if (!fechaUltimoCambio) return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
+    if (!fechaUltimoCambio || fechaUltimoCambio === null || fechaUltimoCambio === undefined) {
+      return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
+    }
 
     const fechaCambio = new Date(fechaUltimoCambio);
+    if (isNaN(fechaCambio.getTime())) {
+      return { fecha: 'N/A', mensaje: 'Fecha inválida', color: 'transparent', icon: '❓' };
+    }
+
     const fechaProximoCambio = new Date(fechaCambio);
     fechaProximoCambio.setDate(fechaCambio.getDate() + 60);
     
@@ -130,16 +148,16 @@ const Vehiculos = () => {
 
     if (mostrarEnAlerta) {
       resultado = resultado.filter(vehiculo => {
-        const soatDiferencia = vehiculo.soatVigencia 
-          ? Math.floor((new Date(vehiculo.soatVigencia) - new Date()) / (1000 * 60 * 60 * 24))
+        const soatDiferencia = vehiculo.soatvigencia 
+          ? Math.floor((new Date(vehiculo.soatvigencia) - new Date()) / (1000 * 60 * 60 * 24))
           : Infinity;
         
-        const tecnoDiferencia = vehiculo.tecnoMecanicaVigencia 
-          ? Math.floor((new Date(vehiculo.tecnoMecanicaVigencia) - new Date()) / (1000 * 60 * 60 * 24))
+        const tecnoDiferencia = vehiculo.tecnomecanicavigencia 
+          ? Math.floor((new Date(vehiculo.tecnomecanicavigencia) - new Date()) / (1000 * 60 * 60 * 24))
           : Infinity;
         
-        const aceiteDiferencia = vehiculo.ultimoCambioAceite
-          ? Math.floor((new Date(new Date(vehiculo.ultimoCambioAceite).setDate(new Date(vehiculo.ultimoCambioAceite).getDate() + 60)) - new Date()) / (1000 * 60 * 60 * 24))
+        const aceiteDiferencia = vehiculo.ultimocambioaceite
+          ? Math.floor((new Date(new Date(vehiculo.ultimocambioaceite).setDate(new Date(vehiculo.ultimocambioaceite).getDate() + 60)) - new Date()) / (1000 * 60 * 60 * 24))
           : Infinity;
 
         return soatDiferencia <= 15 || tecnoDiferencia <= 15 || aceiteDiferencia <= 7;
@@ -183,9 +201,9 @@ const Vehiculos = () => {
       'Marca': vehiculo.marca || 'N/A',
       'Modelo': vehiculo.modelo || 'N/A',
       'Año': vehiculo.año || 'N/A',
-      'SOAT': `${formatearFecha(vehiculo.soatVigencia)} - ${obtenerAlertaVencimiento(vehiculo.soatVigencia).mensaje}`,
-      'TecnoMecánica': `${formatearFecha(vehiculo.tecnoMecanicaVigencia)} - ${obtenerAlertaVencimiento(vehiculo.tecnoMecanicaVigencia).mensaje}`,
-      'Último Cambio Aceite': `${formatearFecha(vehiculo.ultimoCambioAceite)} - ${obtenerAlertaCambioAceite(vehiculo.ultimoCambioAceite).mensaje}`,
+      'SOAT': `${formatearFecha(vehiculo.soatvigencia)} - ${obtenerAlertaVencimiento(vehiculo.soatvigencia).mensaje}`,
+      'TecnoMecánica': `${formatearFecha(vehiculo.tecnomecanicavigencia)} - ${obtenerAlertaVencimiento(vehiculo.tecnomecanicavigencia).mensaje}`,
+      'Último Cambio Aceite': `${formatearFecha(vehiculo.ultimocambioaceite)} - ${obtenerAlertaCambioAceite(vehiculo.ultimocambioaceite).mensaje}`,
     }));
 
     const ws = XLSX.utils.json_to_sheet(vehiculosParaExportar);
@@ -259,7 +277,7 @@ const Vehiculos = () => {
       width: isMobile ? '100%' : 'auto',
     },
     button: {
-      padding: isMobile ? '0.875rem' : '0.875rem 1.5rem',
+      padding: isMobile ? '1rem' : '0.875rem 1.5rem',
       border: 'none',
       borderRadius: '8px',
       fontSize: isMobile ? '0.875rem' : '1rem',
@@ -485,9 +503,9 @@ const Vehiculos = () => {
         ) : isMobile ? (
           <div>
             {vehiculosFiltrados.map((vehiculo) => {
-              const soatAlerta = obtenerAlertaVencimiento(vehiculo.soatVigencia);
-              const tecnoAlerta = obtenerAlertaVencimiento(vehiculo.tecnoMecanicaVigencia);
-              const aceiteAlerta = obtenerAlertaCambioAceite(vehiculo.ultimoCambioAceite);
+              const soatAlerta = obtenerAlertaVencimiento(vehiculo.soatvigencia);
+              const tecnoAlerta = obtenerAlertaVencimiento(vehiculo.tecnomecanicavigencia);
+              const aceiteAlerta = obtenerAlertaCambioAceite(vehiculo.ultimocambioaceite);
 
               return (
                 <div key={vehiculo.placa} style={styles.mobileCard}>
@@ -620,9 +638,9 @@ const Vehiculos = () => {
             </thead>
             <tbody>
               {vehiculosFiltrados.map((vehiculo) => {
-                const soatAlerta = obtenerAlertaVencimiento(vehiculo.soatVigencia);
-                const tecnoAlerta = obtenerAlertaVencimiento(vehiculo.tecnoMecanicaVigencia);
-                const aceiteAlerta = obtenerAlertaCambioAceite(vehiculo.ultimoCambioAceite);
+                const soatAlerta = obtenerAlertaVencimiento(vehiculo.soatvigencia);
+                const tecnoAlerta = obtenerAlertaVencimiento(vehiculo.tecnomecanicavigencia);
+                const aceiteAlerta = obtenerAlertaCambioAceite(vehiculo.ultimocambioaceite);
 
                 return (
                   <tr key={vehiculo.placa}>
