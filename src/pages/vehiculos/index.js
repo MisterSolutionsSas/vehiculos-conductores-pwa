@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
 import withAuth from '../../utils/withAuth';
 import * as XLSX from 'xlsx';
+import { supabase } from '../../supabaseClient';
 
 const Vehiculos = () => {
   const [vehiculos, setVehiculos] = useState([]);
@@ -13,7 +14,6 @@ const Vehiculos = () => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Persistir búsqueda en localStorage
   useEffect(() => {
     const busquedaGuardada = localStorage.getItem('busquedaVehiculos') || '';
     setBusqueda(busquedaGuardada);
@@ -23,7 +23,6 @@ const Vehiculos = () => {
     localStorage.setItem('busquedaVehiculos', busqueda);
   }, [busqueda]);
 
-  // Detectar si es móvil
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -34,15 +33,19 @@ const Vehiculos = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Cargar vehículos
   useEffect(() => {
-    const fetchVehiculos = () => {
+    const fetchVehiculos = async () => {
       try {
         setIsLoading(true);
-        const localData = JSON.parse(localStorage.getItem('vehiculos')) || [];
-        setVehiculos(localData);
+        const { data, error } = await supabase
+          .from('vehiculos')
+          .select('*');
+
+        if (error) throw error;
+        
+        setVehiculos(data || []);
       } catch (error) {
-        console.error('Error al cargar vehículos:', error);
+        console.error('Error al cargar vehículos desde Supabase:', error);
         setVehiculos([]);
       } finally {
         setIsLoading(false);
@@ -52,14 +55,12 @@ const Vehiculos = () => {
     fetchVehiculos();
   }, []);
 
-  // Formatear fechas
   const formatearFecha = useCallback((fecha) => {
     if (!fecha) return 'N/A';
     const opciones = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(fecha).toLocaleDateString('es-ES', opciones);
   }, []);
 
-  // Calcular alertas de vencimiento para SOAT y Técnico-mecánica
   const obtenerAlertaVencimiento = useCallback((fechaVigencia) => {
     if (!fechaVigencia) return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
     
@@ -88,13 +89,12 @@ const Vehiculos = () => {
     return { fecha: fechaFormateada, mensaje, color, icon };
   }, [formatearFecha]);
 
-  // Calcular alertas para cambio de aceite (cada 2 meses, alerta 7 días antes)
   const obtenerAlertaCambioAceite = useCallback((fechaUltimoCambio) => {
     if (!fechaUltimoCambio) return { fecha: 'N/A', mensaje: 'Sin fecha', color: 'transparent', icon: '❓' };
 
     const fechaCambio = new Date(fechaUltimoCambio);
     const fechaProximoCambio = new Date(fechaCambio);
-    fechaProximoCambio.setDate(fechaCambio.getDate() + 60); // Próximo cambio en 2 meses (60 días)
+    fechaProximoCambio.setDate(fechaCambio.getDate() + 60);
     
     const hoy = new Date();
     const diferencia = Math.floor((fechaProximoCambio - hoy) / (1000 * 60 * 60 * 24));
@@ -121,7 +121,6 @@ const Vehiculos = () => {
     return { fecha: fechaFormateada, mensaje, color, icon };
   }, [formatearFecha]);
 
-  // Filtrar vehículos
   const vehiculosFiltrados = useMemo(() => {
     let resultado = vehiculos.filter(vehiculo => {
       const placaMatch = vehiculo.placa?.toLowerCase().includes(busqueda.toLowerCase());
@@ -150,17 +149,19 @@ const Vehiculos = () => {
     return resultado;
   }, [vehiculos, busqueda, mostrarEnAlerta]);
 
-  // Acciones CRUD
-  const eliminarVehiculo = useCallback((placa) => {
+  const eliminarVehiculo = useCallback(async (placa) => {
     const confirmar = window.confirm('¿Eliminar este vehículo?');
     if (!confirmar) return;
 
     try {
-      const localData = JSON.parse(localStorage.getItem('vehiculos')) || [];
-      const updatedLocalData = localData.filter(v => v.placa !== placa);
-      
-      localStorage.setItem('vehiculos', JSON.stringify(updatedLocalData));
-      setVehiculos(updatedLocalData);
+      const { error } = await supabase
+        .from('vehiculos')
+        .delete()
+        .eq('placa', placa);
+
+      if (error) throw error;
+
+      setVehiculos(prevVehiculos => prevVehiculos.filter(v => v.placa !== placa));
     } catch (error) {
       console.error('Error al eliminar vehículo:', error);
       alert('No se pudo eliminar el vehículo');
@@ -175,7 +176,6 @@ const Vehiculos = () => {
     router.push(`/vehiculos/historial/${placa}`);
   }, [router]);
 
-  // Exportar a Excel
   const exportarAExcel = useCallback(() => {
     const vehiculosParaExportar = vehiculosFiltrados.map(vehiculo => ({
       'Conductor': vehiculo.conductor || 'N/A',
@@ -191,14 +191,14 @@ const Vehiculos = () => {
     const ws = XLSX.utils.json_to_sheet(vehiculosParaExportar);
     
     const columnWidths = [
-      { wch: 20 },  // Conductor
-      { wch: 12 },  // Placa
-      { wch: 15 },  // Marca
-      { wch: 15 },  // Modelo
-      { wch: 8 },   // Año
-      { wch: 30 },  // SOAT
-      { wch: 30 },  // TecnoMecánica
-      { wch: 30 },  // Último Cambio Aceite
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 8 },
+      { wch: 30 },
+      { wch: 30 },
+      { wch: 30 },
     ];
     
     ws['!cols'] = columnWidths;
@@ -208,7 +208,6 @@ const Vehiculos = () => {
     XLSX.writeFile(wb, 'vehiculos.xlsx');
   }, [vehiculosFiltrados, formatearFecha, obtenerAlertaVencimiento, obtenerAlertaCambioAceite]);
 
-  // Estilos responsivos
   const styles = {
     container: {
       padding: isMobile ? '1rem' : '2rem 5%',
@@ -424,7 +423,7 @@ const Vehiculos = () => {
       fontSize: '0.75rem',
       color: '#4a5568',
       marginBottom: '0.25rem',
-      textTransform: 'uppercase', // Corrección aplicada
+      textTransform: 'uppercase',
     },
     cardValue: {
       fontSize: '0.875rem',
