@@ -471,11 +471,12 @@ const HistorialVehiculo = () => {
             >
               {modoEdicion ? '💾 Guardar Cambios' : '➕ Agregar'}
             </button>
-            {modoEdicion && (
-              <button onClick={cancelarEdicion} style={styles.buttonCancel}>
-                ❌ Cancelar
-              </button>
-            )}
+            <button
+              onClick={cancelarEdicion}
+              style={styles.buttonCancel}
+            >
+              ❌ Cancelar
+            </button>
           </div>
         </div>
       </div>
