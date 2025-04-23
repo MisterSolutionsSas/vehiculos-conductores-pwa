@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { supabase } from '../../supabaseClient';
 
 export default function RegistrarVehiculo() {
   const [vehiculo, setVehiculo] = useState({
@@ -8,9 +9,9 @@ export default function RegistrarVehiculo() {
     marca: '',
     modelo: '',
     año: '',
-    soatVigencia: '',
-    tecnoMecanicaVigencia: '',
-    ultimoCambioAceite: ''
+    soatvigencia: '', // Cambiado a minúsculas para coincidir con Supabase
+    tecnomecanicavigencia: '', // Cambiado a minúsculas
+    ultimocambioaceite: '' // Cambiado a minúsculas
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,41 +25,82 @@ export default function RegistrarVehiculo() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Validar campos obligatorios
     if (
       !vehiculo.conductor ||
       !vehiculo.placa ||
       !vehiculo.marca ||
       !vehiculo.modelo ||
       !vehiculo.año ||
-      !vehiculo.soatVigencia ||
-      !vehiculo.tecnoMecanicaVigencia
+      !vehiculo.soatvigencia ||
+      !vehiculo.tecnomecanicavigencia
     ) {
       alert('Por favor, complete todos los campos obligatorios.');
       setIsSubmitting(false);
       return;
     }
 
-    const vehiculos = JSON.parse(localStorage.getItem('vehiculos')) || [];
-
-    const placaExistente = vehiculos.find(v => v.placa === vehiculo.placa);
-    if (placaExistente) {
-      alert('Ya existe un vehículo registrado con esta placa.');
+    // Validar formato del año
+    const añoNum = parseInt(vehiculo.año, 10);
+    if (isNaN(añoNum) || añoNum < 1900 || añoNum > new Date().getFullYear() + 1) {
+      alert('Por favor, ingrese un año válido.');
       setIsSubmitting(false);
       return;
     }
 
-    vehiculos.push({
-      ...vehiculo,
-      id: Date.now(),
-      createdAt: new Date().toISOString()
-    });
-    localStorage.setItem('vehiculos', JSON.stringify(vehiculos));
+    try {
+      // Verificar si la placa ya existe en Supabase
+      const { data: placaExistente, error: checkError } = await supabase
+        .from('vehiculos')
+        .select('placa')
+        .eq('placa', vehiculo.placa)
+        .single();
 
-    router.push('/vehiculos');
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 significa que no se encontró ningún registro, lo cual está bien
+        throw checkError;
+      }
+
+      if (placaExistente) {
+        alert('Ya existe un vehículo registrado con esta placa.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Preparar datos para Supabase
+      const datosVehiculo = {
+        conductor: vehiculo.conductor,
+        placa: vehiculo.placa,
+        marca: vehiculo.marca,
+        modelo: vehiculo.modelo,
+        año: añoNum,
+        soatvigencia: new Date(vehiculo.soatvigencia).toISOString(),
+        tecnomecanicavigencia: new Date(vehiculo.tecnomecanicavigencia).toISOString(),
+        ultimocambioaceite: vehiculo.ultimocambioaceite
+          ? new Date(vehiculo.ultimocambioaceite).toISOString()
+          : null, // Enviar null si no se especifica
+      };
+
+      // Insertar en Supabase
+      const { error: insertError } = await supabase
+        .from('vehiculos')
+        .insert([datosVehiculo]);
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Redirigir a la lista de vehículos
+      router.push('/vehiculos');
+    } catch (error) {
+      console.error('Error al registrar vehículo:', error);
+      alert('No se pudo registrar el vehículo. Por favor, intenta de nuevo.');
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -150,12 +192,12 @@ export default function RegistrarVehiculo() {
           </div>
 
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="soatVigencia">Vigencia SOAT *</label>
+            <label style={styles.label} htmlFor="soatvigencia">Vigencia SOAT *</label>
             <input
-              id="soatVigencia"
+              id="soatvigencia"
               type="date"
-              name="soatVigencia"
-              value={vehiculo.soatVigencia}
+              name="soatvigencia"
+              value={vehiculo.soatvigencia}
               onChange={handleChange}
               style={styles.input}
               required
@@ -163,12 +205,12 @@ export default function RegistrarVehiculo() {
           </div>
 
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="tecnoMecanicaVigencia">Vigencia Técnico-mecánica *</label>
+            <label style={styles.label} htmlFor="tecnomecanicavigencia">Vigencia Técnico-mecánica *</label>
             <input
-              id="tecnoMecanicaVigencia"
+              id="tecnomecanicavigencia"
               type="date"
-              name="tecnoMecanicaVigencia"
-              value={vehiculo.tecnoMecanicaVigencia}
+              name="tecnomecanicavigencia"
+              value={vehiculo.tecnomecanicavigencia}
               onChange={handleChange}
               style={styles.input}
               required
@@ -176,12 +218,12 @@ export default function RegistrarVehiculo() {
           </div>
 
           <div style={styles.formGroup}>
-            <label style={styles.label} htmlFor="ultimoCambioAceite">Último cambio de aceite</label>
+            <label style={styles.label} htmlFor="ultimocambioaceite">Último cambio de aceite</label>
             <input
-              id="ultimoCambioAceite"
+              id="ultimocambioaceite"
               type="date"
-              name="ultimoCambioAceite"
-              value={vehiculo.ultimoCambioAceite}
+              name="ultimocambioaceite"
+              value={vehiculo.ultimocambioaceite}
               onChange={handleChange}
               style={styles.input}
             />
