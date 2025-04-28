@@ -67,7 +67,7 @@ const Header = () => {
         </ul>
 
         <div className={styles.userInfo}>
-          {user && (
+          {user ? (
             <>
               <span className={styles.welcomeMessage}>
                 Bienvenido, {user.name || "Admin"}
@@ -76,6 +76,10 @@ const Header = () => {
                 Cerrar sesión
               </button>
             </>
+          ) : (
+            <Link href="/login" passHref legacyBehavior>
+              <a>Iniciar sesión</a>
+            </Link>
           )}
         </div>
       </nav>
