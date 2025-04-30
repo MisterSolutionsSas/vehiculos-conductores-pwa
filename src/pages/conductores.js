@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import * as XLSX from 'xlsx';
-import { supabase } from '../supabaseClient'; // Ajusta la ruta según la ubicación de supabaseClient.js
+import { supabase } from '../supabaseClient';
 
 const Conductores = () => {
   const [conductores, setConductores] = useState([]);
@@ -96,7 +96,8 @@ const Conductores = () => {
       const licenciaMatch = conductor.numero_licencia
         ?.toLowerCase()
         .includes(busqueda.toLowerCase());
-      return nombreMatch || licenciaMatch;
+      const notasMatch = conductor.notas?.toLowerCase().includes(busqueda.toLowerCase()); // Búsqueda por notas
+      return nombreMatch || licenciaMatch || notasMatch;
     });
 
     if (mostrarEnAlerta) {
@@ -149,6 +150,7 @@ const Conductores = () => {
       Vencimiento: `${formatearFecha(conductor.licencia_vigencia)} - ${
         obtenerAlertaVencimiento(conductor.licencia_vigencia).mensaje
       }`,
+      Notas: conductor.notas || 'N/A', // Nuevo campo en Excel
     }));
 
     const ws = XLSX.utils.json_to_sheet(conductoresParaExportar);
@@ -160,6 +162,7 @@ const Conductores = () => {
       { wch: 15 }, // Licencia
       { wch: 12 }, // Categoría
       { wch: 30 }, // Vencimiento
+      { wch: 40 }, // Notas
     ];
 
     ws['!cols'] = columnWidths;
@@ -271,7 +274,7 @@ const Conductores = () => {
       borderBottom: '1px solid #e5e7eb',
       fontSize: isMobile ? '0.9rem' : '1rem',
       verticalAlign: 'top',
-      whiteSpace: 'nowrap',
+      whiteSpace: isMobile ? 'normal' : 'nowrap', // Permitir wrap en notas
     },
     alertCell: {
       display: 'flex',
@@ -364,7 +367,7 @@ const Conductores = () => {
         <div style={styles.controls}>
           <input
             type="text"
-            placeholder="Buscar por nombre o licencia..."
+            placeholder="Buscar por nombre, licencia o notas..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             style={styles.searchInput}
@@ -451,6 +454,11 @@ const Conductores = () => {
                         {licenciaAlerta.icon} {licenciaAlerta.mensaje}
                       </div>
                     </div>
+
+                    <div style={styles.cardItem}>
+                      <div style={styles.cardLabel}>Notas</div>
+                      <div style={styles.cardValue}>{conductor.notas || 'N/A'}</div>
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.8rem', marginTop: '1rem' }}>
@@ -491,6 +499,7 @@ const Conductores = () => {
                 <th style={styles.th}>Licencia</th>
                 <th style={styles.th}>Categoría</th>
                 <th style={styles.th}>Vencimiento</th>
+                <th style={styles.th}>Notas</th> {/* Nueva columna */}
                 <th style={styles.th}>Acciones</th>
               </tr>
             </thead>
@@ -513,6 +522,7 @@ const Conductores = () => {
                         </div>
                       </div>
                     </td>
+                    <td style={styles.td}>{conductor.notas || 'N/A'}</td> {/* Nueva celda */}
                     <td style={styles.td}>
                       <div style={styles.actions}>
                         <button

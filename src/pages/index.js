@@ -48,13 +48,6 @@ function Home() {
                   <span style={styles.buttonIcon}>🚗</span> Explorar Vehículos
                 </button>
               </Link>
-              <a
-                href="mailto:mistersolutions.s.a.s@gmail.com"
-                style={{ ...styles.secondaryButton, ...(isMobile ? styles.secondaryButtonMobile : {}) }}
-                aria-label="Contactar soporte"
-              >
-                <span style={styles.buttonIcon}>📧</span> Contáctanos
-              </a>
             </div>
           </div>
         </div>
@@ -104,32 +97,6 @@ function Home() {
           <span style={styles.buttonIcon}>🌐</span> Conoce Más
         </a>
       </section>
-
-      <footer style={{ ...styles.footer, ...(isMobile ? styles.footerMobile : {}) }}>
-        <div style={styles.footerContent}>
-          <p style={{ ...styles.footerText, ...(isMobile ? styles.footerTextMobile : {}) }}>
-            Sistema de Gestión Vehicular © {new Date().getFullYear()} | Mister Solutions S.A.S
-          </p>
-          <div style={styles.footerLinks}>
-            <a
-              href="mailto:mistersolutions.s.a.s@gmail.com"
-              style={styles.footerLink}
-              aria-label="Contactar soporte"
-            >
-              Contacto
-            </a>
-            <a
-              href="https://linkfly.to/MisterSolutionsSas"
-              style={styles.footerLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Visitar Mister Solutions"
-            >
-              Sobre Nosotros
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
@@ -239,25 +206,6 @@ const styles = {
     gap: '0.5rem',
   },
   ctaButtonMobile: {
-    padding: '0.7rem 1.5rem',
-    fontSize: '0.95rem',
-  },
-  secondaryButton: {
-    padding: '0.8rem 2rem',
-    backgroundColor: 'transparent',
-    color: '#3182ce',
-    border: '2px solid #3182ce',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    transition: 'background-color 0.3s, color 0.3s, box-shadow 0.3s',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
-  secondaryButtonMobile: {
     padding: '0.7rem 1.5rem',
     fontSize: '0.95rem',
   },
@@ -378,43 +326,6 @@ const styles = {
   aboutButtonMobile: {
     padding: '0.7rem 1.5rem',
     fontSize: '0.95rem',
-  },
-  // Footer
-  footer: {
-    backgroundColor: '#2d3748',
-    padding: '1.5rem 1rem',
-    color: '#e2e8f0',
-  },
-  footerMobile: {
-    padding: '1rem 0.5rem',
-  },
-  footerContent: {
-    maxWidth: '1280px',
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '0.75rem',
-  },
-  footerText: {
-    fontSize: '0.9rem',
-    color: '#e2e8f0',
-    textAlign: 'center',
-  },
-  footerTextMobile: {
-    fontSize: '0.85rem',
-  },
-  footerLinks: {
-    display: 'flex',
-    gap: '1rem',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  footerLink: {
-    fontSize: '0.9rem',
-    color: '#90cdf4',
-    textDecoration: 'none',
-    transition: 'color 0.3s',
   },
 };
 

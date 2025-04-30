@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Navbar from '../../../components/Navbar';
-import { supabase } from '../../../supabaseClient'; // Ajusta la ruta según la ubicación de supabaseClient.js
+import { supabase } from '../../../supabaseClient';
 
 const EditarConductor = () => {
   const router = useRouter();
@@ -16,6 +16,7 @@ const EditarConductor = () => {
     numero_licencia: '',
     categoria_licencia: '',
     licencia_vigencia: '',
+    notas: '', // Nuevo campo agregado
   });
 
   useEffect(() => {
@@ -50,6 +51,7 @@ const EditarConductor = () => {
               licencia_vigencia: data.licencia_vigencia
                 ? new Date(data.licencia_vigencia).toISOString().split('T')[0]
                 : '',
+              notas: data.notas || '', // Nuevo campo cargado desde Supabase
             });
           } else {
             setError('No se encontró el conductor');
@@ -130,6 +132,7 @@ const EditarConductor = () => {
         licencia_vigencia: formData.licencia_vigencia
           ? new Date(formData.licencia_vigencia).toISOString()
           : null,
+        notas: formData.notas ? formData.notas.trim() : null, // Nuevo campo para actualizar
       };
 
       // Actualizar en Supabase
@@ -199,6 +202,17 @@ const EditarConductor = () => {
       color: '#374151',
       backgroundColor: '#f9fafb',
       outline: 'none',
+    },
+    textarea: { // Nuevo estilo para el textarea
+      padding: '0.9rem 1rem',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '1rem',
+      color: '#374151',
+      backgroundColor: '#f9fafb',
+      outline: 'none',
+      minHeight: '100px',
+      resize: 'vertical',
     },
     button: {
       padding: '1rem',
@@ -300,6 +314,17 @@ const EditarConductor = () => {
             value={formData.licencia_vigencia}
             onChange={handleChange}
             style={styles.input}
+          />
+        </div>
+
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Notas del conductor</label>
+          <textarea
+            name="notas"
+            value={formData.notas}
+            onChange={handleChange}
+            style={styles.textarea}
+            placeholder="Ej: Información adicional sobre el conductor"
           />
         </div>
 

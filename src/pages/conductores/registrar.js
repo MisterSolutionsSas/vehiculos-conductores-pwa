@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
-import { supabase } from '../../supabaseClient'; // Ajusta la ruta según la ubicación de supabaseClient.js
+import { supabase } from '../../supabaseClient';
 
 const RegistrarConductor = () => {
   const router = useRouter();
@@ -16,6 +16,7 @@ const RegistrarConductor = () => {
     numero_licencia: '',
     categoria_licencia: '',
     licencia_vigencia: '',
+    notas: '', // Nuevo campo agregado
   });
 
   useEffect(() => {
@@ -90,6 +91,7 @@ const RegistrarConductor = () => {
         numero_licencia: formData.numero_licencia.trim(),
         categoria_licencia: formData.categoria_licencia ? formData.categoria_licencia.trim() : null,
         licencia_vigencia: formData.licencia_vigencia ? new Date(formData.licencia_vigencia).toISOString() : null,
+        notas: formData.notas ? formData.notas.trim() : null, // Nuevo campo agregado
       };
 
       // Insertar en Supabase
@@ -172,6 +174,18 @@ const RegistrarConductor = () => {
       backgroundColor: '#f8fafc',
       outline: 'none',
       width: '100%',
+    },
+    textarea: {  // Nuevo estilo para el textarea
+      padding: '0.75rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '0.5rem',
+      fontSize: '0.95rem',
+      color: '#2d3748',
+      backgroundColor: '#f8fafc',
+      outline: 'none',
+      width: '100%',
+      minHeight: '100px',
+      resize: 'vertical',
     },
     buttonsContainer: {
       display: 'flex',
@@ -293,6 +307,17 @@ const RegistrarConductor = () => {
             value={formData.licencia_vigencia}
             onChange={handleChange}
             style={styles.input}
+          />
+        </div>
+
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Notas del conductor</label>
+          <textarea
+            name="notas"
+            value={formData.notas}
+            onChange={handleChange}
+            style={styles.textarea}
+            placeholder="Ej: Información adicional sobre el conductor"
           />
         </div>
 
