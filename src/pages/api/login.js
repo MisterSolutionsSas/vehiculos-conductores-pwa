@@ -1,5 +1,10 @@
 const usuarios = [
-  { email: 'admin@demo.com', contraseña: 'admin1234', rol: 'admin' },
+  { email: 'elplacer999@gmail.com', contraseña: 'adminelplacer999', rol: 'admin' },
+  { email: 'admin1@elplacer.com', contraseña: 'adminelplacer999', rol: 'admin' },
+  { email: 'admin2@elplacer.com', contraseña: 'adminelplacer999', rol: 'admin' },
+  { email: 'admin3@elplacer.com', contraseña: 'adminelplacer999', rol: 'admin' },
+  { email: 'admin4@elplacer.com', contraseña: 'adminelplacer999', rol: 'admin' },
+  { email: 'admin5@elplacer.com', contraseña: 'adminelplacer999', rol: 'admin' },
   { email: 'conductor@demo.com', contraseña: 'conductor1234', rol: 'conductor' },
 ];
 
